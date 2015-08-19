@@ -46,7 +46,11 @@ module TableIo
     def escape_value (value)
       value = value.to_s                                      # turn it into a string
       value = value.gsub('"', '""')                           # turn all embedded double quotes into double double-quotes
-      value = '"' + value + '"' if value.include?(@delimiter) # surround it with double quotes if it contains the delimiter.
+
+      if value.include?(@delimiter)  || value.include?('"')   # surround it with double quotes if it contains the delimiter or double quotes.
+        value = '"' + value + '"'
+      end
+
       value
     end
 

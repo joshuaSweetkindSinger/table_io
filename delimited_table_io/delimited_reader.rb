@@ -64,6 +64,88 @@ module TableIo
     # from an escaped double quote.
     def get_value
       c = @stream.getc
+
+      if c == '"'
+        get_quoted_value
+      else
+        @stream.ungetc(c)
+        get_unquoted_value
+      end
+    end
+
+
+    def get_unquoted_value
+      value = ''
+      while true
+        c = @stream.getc
+
+        if c.nil?
+          return value, true
+        end
+
+        if c == "\n"
+          return value, true
+        end
+
+        if c == @delimiter
+          return value, false
+        end
+
+        if c == '"'
+          raise "Values with embedded double-quotes must be surrounded by double-quotes"
+        end
+
+        value << c
+      end
+    end
+
+
+    def get_quoted_value
+      value = ''
+      while true
+        c, end_of_row = get_next_logical_char
+
+        # We found a closing double-quote for our string value
+        if c == '"'
+          return value, end_of_row
+        end
+
+        # We found an escaped double-quote. We'll add it to the value string.
+        if c == '""'
+          c = '"'
+        end
+
+        value << c
+      end
+    end
+
+    # Return two values: the next logical char in the stream, and a boolean indicating end-of-row. The boolean is true
+    # when the logical character read is a string-value-terminating double-quote at end-of-row.
+    # All chars evaluate to themselves except the double double-quote,
+    # which is two double quotes in a row, i.e., "", and these two chars evaluate to a single logical char: the string '""'
+    def get_next_logical_char
+      c = @stream.getc
+
+      if c.nil?
+        raise "End of file encountered while searching for terminating double quote"
+      end
+
+      return [c, false] if c != '"'
+
+      cc = @stream.getc
+
+      return ['""', false] if cc == '"'       # We found an escaped double-quote
+      return ['"',  true]  if cc.nil?         # We found a string-value-terminating double-quote at EOF
+      return ['"',  true]  if cc == "\n"       # We found a string-value-terminating double-quote at end-of-row.
+      return ['"',  false] if cc == @delimiter # We found a string-value-terminating double-quote.
+
+      raise "The only valid character that can follow a double quote is a delimiter or another double quote"
+
+    end
+
+
+    def get_value1
+      c = @stream.getc
       quote_mode = (c == '"')
       @stream.ungetc(c) unless quote_mode
 
