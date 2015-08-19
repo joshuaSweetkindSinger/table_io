@@ -1,4 +1,4 @@
-require 'table_io'
+require '~/Documents/personal/dev/table_io/table_io'
 
 # Write records to @stream using a delimited format such as csv (the default).
 module TableIo
@@ -14,19 +14,25 @@ module TableIo
       if (@delimiter == '"')
         raise 'Cannot use the double-quote character as a delimiter'
       end
+
+      @row = '' # Used to build up a string representing a row before writing it to the stream.
     end
 
 
     private
 
-    def write_record (record)
-      delimiter = ''
+    def write_header
       @columns.each do |column_name|
-        @stream.put delimiter
-        @stream.put escape_value(record.hash[column_name])
-        delimiter = @delimiter
+        add_to_row column_name
       end
-      @stream.puts # write a carriage return at the end of the row
+      write_row
+    end
+
+    def write_record (record)
+      @columns.each do |column_name|
+        add_to_row record.hash[column_name]
+      end
+      write_row
     end
 
 
@@ -42,6 +48,24 @@ module TableIo
       value = value.gsub('"', '""')                           # turn all embedded double quotes into double double-quotes
       value = '"' + value + '"' if value.include?(@delimiter) # surround it with double quotes if it contains the delimiter.
       value
+    end
+
+
+    # Put the value v into the next cell in the spreadsheet, performing any necessary
+    # escape modifications so that it is acceptable for output, e.g.,
+    # making sure it is a string, that delimiter chars are escaped, etc.
+    def add_to_row (v)
+      puts "add_to_row: [#{v}]"
+      @row << @delimiter unless @row.empty? # Write a cell separator if this is not the first cell in the row
+      @row << escape_value(v)               # Write the escaped value.
+    end
+
+
+    # Write out to the stream the row we have been building up, and start a new row.
+    def write_row
+      puts "write_row"
+      @stream.puts(@row)
+      @row = ''
     end
   end
 end

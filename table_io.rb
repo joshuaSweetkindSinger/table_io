@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 # This file implements the TableIO module, which knows how to read and write
 # records/rows stored as table-data in a number of different formats, such as csv.
 # The architecture is extensible so that new readers and writers
@@ -38,6 +36,11 @@ module TableIo
       columns.each_with_index do |column_name, index|
         @hash[column_name] = row[index]
       end
+    end
+
+
+    def to_s
+      "#{@hash}"
     end
 
 
@@ -101,6 +104,7 @@ module TableIo
     # Read the entire spreadsheet represented by reader and convert it to our format.
     def convert (reader)
       while r = reader.read
+        puts "convert:r = #{r}"
         write r
       end
     end
@@ -112,24 +116,4 @@ module TableIo
       raise "The write() method must be defined by a subclass of Write. You can't instantiate a Writer object directly."
     end
   end
-
-
-
-  # ===========================================================================
-  #                           Test Routine
-  # ===========================================================================
-
-  # Do record formatting from filename.
-  def self.test_it
-    File.open ('test/test1.csv') do |input_stream|
-      reader = DelimitedReader.new(input_stream)
-      File.open('test/test2.csv', 'w') do |output_stream|
-        writer = DelimitedWriter.new(output_stream, reader.columns)
-        writer.convert(reader)
-      end
-    end
-  end
 end
-
-# Invoked via the Command-line: do record formatting from the file specified as the first command line arg.
-TableIo::test_it
