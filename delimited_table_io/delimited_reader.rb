@@ -28,7 +28,6 @@ module TableIo
     # we are end-of-file.
     def read
       row = get_row
-      puts "read:row = #{row}"
       Record.new(row, @columns) if row
     end
 
@@ -86,7 +85,7 @@ module TableIo
 
         c = @stream.getc
 
-        if !quote_mode && (c == '\n')
+        if !quote_mode && (c == "\n")
           return value, true
         end
 
@@ -111,7 +110,7 @@ module TableIo
         end
 
         # We found a closing double-quote for our quote-mode value, and we're at end of row.
-        if num_quotes == 1 && c == '\n'
+        if num_quotes == 1 && c == "\n"
           return value, true
         end
 
@@ -127,4 +126,5 @@ module TableIo
         value << c
       end
     end
+  end
 end
