@@ -20,37 +20,7 @@
 #
 # The top-level instantiable classes are DelimitedReader, DelimitedWriter, JsonReader, JsonWriter, XmlReader, and XmlWriter.
 
-module TableIO
-
-  # ===========================================================================
-  #                           Helper Module
-  # ===========================================================================
-  # This module contains helper functions for the TableIO module
-  module Helper
-    # Read the next value from our stream. Stream is comma-separated, and lines are terminated with a carriage return,
-    # except if the value begins with a double quote, then read through commas and carriage returns until
-    # the closing double quote.
-    def get_next_value
-      char = @stream.readchar
-      stop_chars = (char == '"') ? '"' : ",\n"
-      @stream.ungetc(char) if (char != '"')
-      result = read_to_char(stop_chars)
-      @stream.readchar if char == '"' # chomp the comma that will follow the closing double quote.
-      result
-    end
-
-
-    # Read characters from our stream until one of the stop_chars is encountered.
-    # Return a string of the characters read up to but not including the stop char.
-    def read_to_char (stop_chars)
-      result = ''
-      while !@stream.eof? && !stop_chars.include?(c = @stream.readchar)
-        result << c
-      end
-      result
-    end
-  end
-
+module TableIo
   # ===========================================================================
   #                           Record
   # ===========================================================================
@@ -111,18 +81,22 @@ module TableIO
   # the columns in record--just those it is asked to write.
   #  This is a base class. It is not instantiable. See, for example, DelimitedWriter
   class Writer
-    def initialize (stream, columns, write_header)
-      @stream       = stream
-      @columns      = columns
-      @write_header = write_header # Flag to tell us we need to write a header row.
+    def initialize (stream, columns, options = {})
+      @stream         = stream
+      @columns        = columns
+      @options        = {write_header: true}.merge(options)
+      @header_written = false
     end
 
-
-    # Write record to @stream using our format.
+    # Write record to @stream, possibly writing a header first if necessary.
     def write (record)
-      raise "The write() method must be defined by a subclass of Write. You can't instantiate a Writer object directly."
-    end
+      if !@header_written && @options[:write_header]
+        write_header
+        @header_written = true
+      end
 
+      write_record record
+    end
 
     # Read the entire spreadsheet represented by reader and convert it to our format.
     def convert (reader)
@@ -130,88 +104,16 @@ module TableIO
         write r
       end
     end
-  end
-
-
-  # ===========================================================================
-  #                           Delimited Reader and Writer
-  # ===========================================================================
-  # A DelimitedReader object is initialized from a stream that is opened to the spreadsheet in question.
-  # It knows how to read and return the next record from the spreadsheet. Use a delimited reader
-  # for csv files (the default), and for any other kind of delimited file, such as tab delimited.
-  # If the delimiter is not a comma, you must specify the delimiter when you initialize the Reader.
-  class DelimitedReader < Reader
-    DEFAULT_DELIMITER = ','
-
-    def initialize (stream, delimiter = DEFAULT_DELIMITER)
-      if (delimiter = '"')
-        raise 'Cannot use the double-quote character as a delimiter'
-      end
-
-      super stream
-      @delimiter = delimiter
-      @columns   = get_row
-    end
-
-
-    # Return the next row from the delimited stream as a Record object.
-    def read
-      Record.new(get_row, @columns)
-    end
-
 
     private
 
-    # Return the next row of data from the delimited stream as an array of strings.
-    def get_row
-      @stream.readline().split(@delimiter)
+    # Write record to @stream using our format. The public method is write(). See above.
+    def write_record (record)
+      raise "The write() method must be defined by a subclass of Write. You can't instantiate a Writer object directly."
     end
   end
 
 
-
-  # Write records to @stream using a delimited format such as csv (the default).
-  class DelimitedWriter < Writer
-    DEFAULT_DELIMITER = ','
-
-
-    def initialize (stream, columns, write_header, delimiter = DEFAULT_DELIMITER)
-      if (delimiter = '"')
-        raise 'Cannot use the double-quote character as a delimiter'
-      end
-
-      super stream, columns, write_header
-      @delimiter = delimiter
-    end
-
-
-    def write (record)
-      write_header if @write_header
-
-      delimiter = ''
-      @columns.each do |column_name|
-        @stream.put delimiter
-        @stream.put escape_value(record.hash[column_name])
-        delimiter = @delimiter
-      end
-      @stream.puts # write a carriage return at the end of the row
-    end
-
-
-    # Handle proper escaping for csv values.
-    # - If the value to be written is not a string, we need to turn it into one.
-    # - If the string value to be written contains double quotes, we need to turn them into
-    #   double double-quotes, e.g., 'the movie "Star Wars"' becomes 'the movie ""Star Wars""'
-    # - If the string value to be written contains embedded delimiter characters,
-    #   we need to surround it with double quotes, e.g.,
-    #  'I like cookies, ice cream, cake' becomes '"I like cookies, ice cream, cake"'
-    def escape_value (value)
-      value = value.to_s                                      # turn it into a string
-      value = value.gsub('"', '""')                           # turn all embedded double quotes into double double-quotes
-      value = '"' + value + '"' if value.include?(@delimiter) # surround it with double quotes if it contains the delimiter.
-      value
-    end
-  end
 
   # ===========================================================================
   #                           Test Routine
@@ -219,10 +121,10 @@ module TableIO
 
   # Do record formatting from filename.
   def self.test_it
-    File.open ('test1.csv') do |input_stream|
+    File.open ('test/test1.csv') do |input_stream|
       reader = DelimitedReader.new(input_stream)
-      File.open('test1.xml', 'w') do |output_stream|
-        writer = XmlWriter.new(output_stream)
+      File.open('test/test2.csv', 'w') do |output_stream|
+        writer = DelimitedWriter.new(output_stream, reader.columns)
         writer.convert(reader)
       end
     end
@@ -230,4 +132,4 @@ module TableIO
 end
 
 # Invoked via the Command-line: do record formatting from the file specified as the first command line arg.
-TableIO::test_it
+TableIo::test_it
