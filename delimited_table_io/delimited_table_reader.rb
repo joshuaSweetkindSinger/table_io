@@ -23,7 +23,8 @@ module TableIo
     private
 
     # This helper class knows how to read and return the next row from the table as an array of strings.
-    # It returns nil if there is no row to read.
+    # It raises StopIteration if there is no row to read. This behavior is part of our contract with
+    # the parent class IoTable::Reader.
     class RowReader
       def initialize(stream, delimiter)
         @value_reader = ValueReader.new(stream, delimiter)
