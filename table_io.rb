@@ -59,15 +59,29 @@ module TableIo
   # ===========================================================================
   # A Reader object is initialized from a stream that is opened to the spreadsheet in question.
   # It knows how to read and return the next record from the spreadsheet.
-  # This is a base class. It is not instantiable.
+  # This is a base class. It is not instantiable. See, for example, DelimitedReader.
+  # Derived classes must define the read_row() method.
   class Reader
     def initialize(stream)
-      @stream = stream
+      @stream  = stream
+      @columns = read_row # grab the header row that describes the table's columns
     end
 
-    # Read the next row from the stream and return it as a Record object.
+
+
+    # Read and return the next row from the stream as a Record object, or nil if
+    # we are end-of-file.
     def read
-      raise "The read() method must be defined by a subclass of Reader. You can't instantiate a Reader object directly."
+      row = read_row
+      Record.new(row, @columns) if row
+    end
+
+
+    private
+
+    # Read the next row from the stream and return it as an array of string values.
+    def read_row
+      raise "The read_row() method must be defined by a subclass of Reader. You can't instantiate a Reader object directly."
     end
 
   end
@@ -82,7 +96,8 @@ module TableIo
   # header row should be written. It then responds to write(record) commands, where record is taken
   # to be a record that contains the columns of interest. Note that the writer need not write all
   # the columns in record--just those it is asked to write.
-  #  This is a base class. It is not instantiable. See, for example, DelimitedWriter
+  #  This is a base class. It is not instantiable. See, for example, DelimitedWriter. Derived classes
+  # must define write_record() and write_header() methods.
   class Writer
     def initialize (stream, columns, options = {})
       @stream         = stream
@@ -101,10 +116,11 @@ module TableIo
       write_record record
     end
 
-    # Read the entire spreadsheet represented by reader and convert it to our format.
+
+    # Read the entire spreadsheet represented by reader and write it back out,
+    # converting it to our format.
     def convert (reader)
       while r = reader.read
-        puts "convert:r = #{r}"
         write r
       end
     end
@@ -113,7 +129,12 @@ module TableIo
 
     # Write record to @stream using our format. The public method is write(). See above.
     def write_record (record)
-      raise "The write() method must be defined by a subclass of Write. You can't instantiate a Writer object directly."
+      raise "The write_record() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
+    end
+
+    # Write a column header to the stream.
+    def write_header
+      raise "The write_header() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
     end
   end
 end

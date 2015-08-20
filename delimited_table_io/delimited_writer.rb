@@ -59,7 +59,6 @@ module TableIo
     # escape modifications so that it is acceptable for output, e.g.,
     # making sure it is a string, that delimiter chars are escaped, etc.
     def add_to_row (v)
-      puts "add_to_row: [#{v}]"
       @row << @delimiter unless @row.empty? # Write a cell separator if this is not the first cell in the row
       @row << escape_value(v)               # Write the escaped value.
     end
@@ -67,7 +66,6 @@ module TableIo
 
     # Write out to the stream the row we have been building up, and start a new row.
     def write_row
-      puts "write_row"
       @stream.puts(@row)
       @row = ''
     end

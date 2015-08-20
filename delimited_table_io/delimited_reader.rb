@@ -18,17 +18,9 @@ module TableIo
         raise 'Cannot use the double-quote character as a delimiter'
       end
 
-      super stream
       @delimiter = delimiter
-      @columns   = read_row
-    end
 
-
-    # Read and return the next row from the delimited stream as a Record object, or nil if
-    # we are end-of-file.
-    def read
-      row = read_row
-      Record.new(row, @columns) if row
+      super stream
     end
 
 
