@@ -57,29 +57,43 @@ module TableIo
   # ===========================================================================
   #                           Reader (Base Class)
   # ===========================================================================
-  # A Reader object is initialized from a stream that is opened to the spreadsheet in question.
-  # It knows how to read and return the next record from the spreadsheet.
-  # This is a base class. It is not instantiable. See, for example, DelimitedReader.
+  # A Reader object is initialized from a source object--typically a stream, that is opened
+  # to the table in question.
+  #   It knows how to read and return the next record from the table. It is an external
+  # iterator, and calling to_enum() on it will return an Enumerable.
+  #   This is a base class. It is not instantiable. See, for example, DelimitedReader.
   # Derived classes must define the read_row() method.
+  #  Note that this class does not define a stream argument as input to initialize, because
+  # the base class does not make use of it. In principle, a subclass of Reader could be initialized
+  # from a source other than a stream. All the reader needs to be able to do is implement read_row().
+  # In practice, subclasses will have initialize() methods that accept a stream arg.
   class Reader
-    def initialize(stream)
-      @stream  = stream
+    def initialize
       @columns = read_row # grab the header row that describes the table's columns
     end
 
 
 
-    # Read and return the next row from the stream as a Record object, or nil if
+    # Read and return the next row from the stream as a Record object, or raise StopIteration if
     # we are end-of-file.
-    def read
-      row = read_row
-      Record.new(row, @columns) if row
+    def next
+      Record.new(read_row, @columns)
+    end
+
+
+    def each
+      if block_given?
+        yield next
+      else
+        to_enum
+      end
     end
 
 
     private
 
-    # Read the next row from the stream and return it as an array of string values.
+    # Read the next row from the stream and return it as an array of string values, or
+    # raise StopIteration if we are at end-of-file.
     def read_row
       raise "The read_row() method must be defined by a subclass of Reader. You can't instantiate a Reader object directly."
     end
@@ -114,15 +128,6 @@ module TableIo
       end
 
       write_record record
-    end
-
-
-    # Read the entire spreadsheet represented by reader and write it back out,
-    # converting it to our format.
-    def convert (reader)
-      while r = reader.read
-        write r
-      end
     end
 
     private
