@@ -16,155 +16,155 @@ module TableIo
 
     def initialize (stream, delimiter = DEFAULT_DELIMITER)
       @value_reader  = DelimitedValueReader.new(stream, delimiter)
-      super
+      super()
     end
 
 
     private
 
-    # Return the next row of data from the delimited stream as an array of strings, or raise
-    # StopIteration if there are no more rows. Note the careful handling of the StopIteration
-    # exception.
-    #   StopIteration can be caught here in either of two cases:
-    # 1) We just successfully read the last row in the file and now we are being called again on an empty file.
-    # 2) We have not yet returned the last row of the file, but we encountered EOF anyway because the row
-    #    is not terminated by a carriage return.
+    # Return the next row of data from the delimited stream as an array of strings, or return
+    # nil if there are no more rows.
     def read_row
       row = []
       @value_reader.each {|v| row << v}
-    rescue EndOfRow
-      row.empty? ? raise StopIteration : row
+      row unless row.empty?
     end
 
 
     # This is a helper class used only by DelimitedReader. It knows how to read and
-    # return the next string value from stream, and raises StopIteration at EOF
-    # and EndOfRow at end-of-row
+    # return the next string value from stream, and raises StopIteration at end-of-row
     class DelimitedValueReader
       def initialize (stream, delimiter)
         if (delimiter == '"')
           raise 'Cannot use the double-quote character as a delimiter'
         end
 
-        @stream    = stream
-        @delimiter = delimiter
+        @stream                = stream
+        @quoted_value_reader   = QuotedValueReader.new(stream, delimiter)
+        @unquoted_value_reader = UnquotedValueReader.new(stream, delimiter)
       end
 
 
-      # Return the next value from within the current row, or raise EndOfRow if we are at the end of the row.
+      # Return the next value from within the current row, or raise StopIteration if we are at the end of the row.
       #
       # PROGRAMMER NOTES: There are two different parsing modes: quote_mode and !quote_mode. If the value
       # begins with a double-quote, then we are in quote mode, and we don't terminate the value until we find
       # its match. If the value does not begin with a double-quote, then we are in !quote_mode, and the value
       # terminates when we find the delimiter, or \n, or EOF.
-      #    We don't distinguish EOF from EndOfRow because the final row may not be terminated with a carriage-return.
-      # This would raise an ambiguity as to whether we should return EOF or EndOfRow. So we just return EndOfRow
+      #    We don't distinguish EOF from end-of-row because the final row may not be terminated with a carriage-return.
+      # This would raise an ambiguity as to whether we should raise EOF or EndOfRow. So we just raise StopIteration
       # in all cases. The caller has enough context to figure out which is which.
       def next
         c = @stream.getc
+        @stream.ungetc(c)
+        raise StopIteration if c.nil? || c == "\n"
 
-        if c.nil? || c == '\n'
-          raise EndOfRow
-        elsif c == '"'
-          read_quoted_value
-        else
-          @stream.ungetc(c)
-          read_unquoted_value
-        end
+        reader = (c == '"') ? @quoted_value_reader : @unquoted_value_reader
+        reader.next
       end
 
 
+      # Iterate over values in the row, allowing
+      # the associated block to process each value.
       def each
-        if block_given?
-          yield next
-        else
-          to_enum
+        loop {yield self.next}
+      end
+
+
+      # This is helper class for DelimitedValueReader. It knows how to read an unquoted value
+      # from stream. An unquoted value is a value that does not begin with a double-quote.
+      class UnquotedValueReader
+        def initialize (stream, delimiter)
+          @stream    = stream
+          @delimiter = delimiter
+        end
+
+        # Return the next value from within the current row.
+        #   This method may only legitimately be called if the value to be read from the stream is an unquoted value,
+        # which is to say that it does not begin with a double-quote character.
+        def next
+          value = ''
+          @stream.each_char do |c|
+            print c
+            if c == "\n"
+              @stream.ungetc(c) # Let the caller read this on the next attempt, in order to single EndOfRow.
+              return value
+            end
+
+            if c == @delimiter
+              return value
+            end
+
+            if c == '"'
+              raise "Values with embedded double-quotes must be surrounded by double-quotes"
+            end
+
+            value << c
+          end
         end
       end
 
 
-      # This is a helper method and should only be called by read_value() above.
-      # Return the next value from within the current row.
-      #   This method may only legitimately be called if the value to be read from the stream is an unquoted value,
-      # which is to say that it does not begin with a double-quote character.
-      def read_unquoted_value
-        value = ''
-        @stream.chars do |c|
-          if c == "\n"
-            @stream.ungetc(c) # Let the caller read this on the next attempt, in order to single EndOfRow.
-            return value
-          end
 
-          if c == @delimiter
-            return value
-          end
-
-          if c == '"'
-            raise "Values with embedded double-quotes must be surrounded by double-quotes"
-          end
-
-          value << c
-        end
-      end
-
-      # This is a helper method and should only be called by read_value() above.
-      # Return the next value from within the current row.
-      #   This method may only legitimately be called when the value to be read is a quoted value, which
-      # is to say that it begins with a double-quote character, AND that double-quote character
-      # has already been removed from the stream by the caller.
-      def read_quoted_value
-        value = ''
-        @stream.chars do |c|
-          c = get_next_logical_char
-
-          # We found a closing double-quote for our string value
-          if c == '"'
-            return value
-          end
-
-          # We found an escaped double-quote. We'll add it to the value string.
-          if c == '""'
-            c = '"'
-          end
-
-          value << c
-        end
-      end
-
-      # This is a helper method and should only be called by read_quoted_value() above.
-      # Return the next logical character from within the current value.
-      # All chars evaluate to themselves except the double double-quote,
-      # which is two double quotes in a row, i.e., "", and these two chars evaluate to a single logical char,
-      # which is returned as the string '""'
-      def get_next_logical_char
-        c = @stream.getc
-
-        if c.nil?
-          raise "End of file encountered while searching for terminating double quote"
+      # This is helper class for DelimitedValueReader. It knows how to read a quoted value
+      # from stream. An quoted value is a value that begins with a double-quote.
+      class QuotedValueReader
+        def initialize (stream, delimiter)
+          @stream              = stream
+          @logical_char_stream = LogicalCharStream.new(stream)
+          @delimiter           = delimiter
         end
 
-        return c if c != '"'
+        # This is a helper method and should only be called by read_value() above.
+        # Return the next value from within the current row.
+        #   This method may only legitimately be called when the value to be read is a quoted value, which
+        # is to say that it begins with a double-quote character.
+        def next
+          raise "Quoted value must begin with a double quote character!" if @stream.getc != '"'
 
-        # We are reading a double-quote. Examine the next character to figure out what logical char to return.
-        cc = @stream.getc
-        case cc
-          when '"'             # We found an escaped double-quote
-            '""'
-          when @delimiter       # We found a string-value-terminating double-quote.
-            '"'
-          when cc.nil?          # We found a string-value-terminating double-quote at EOF
-            '"'
-          when "\n"            # We found a string-value-terminating double-quote at end-of-row.
-            @stream.ungetc(cc) # push this back on the stream to signal EndOfRow next time.
-            '"'
-          else
+          value = ''
+          @logical_char_stream.each do |c|
+            value << c == '""' ? '"' : c
+          end
+
+          value
+        end
+
+
+        # This is a helper class for QuotedValueReader. It knows how to read the nexts logical
+        # character from the stream, in the context of reading a quoted value.
+        #   All chars evaluate to themselves except the double double-quote,
+        # which is two double quotes in a row, i.e., "". These two chars evaluate to a single logical char,
+        # which is returned as the string '""'
+        class LogicalCharStream
+          def initialize (stream)
+            @stream = stream
+          end
+
+
+          def each
+            loop {yield self.next}
+          end
+
+
+          def next
+            c = @stream.getc
+
+            if c.nil?
+              raise "End of file encountered while searching for terminating double quote"
+            end
+
+            return c if c != '"'
+
+            # We are reading a double-quote. Examine the next character to figure out what logical char to return.
+            cc = @stream.getc
+            @stream.ungetc(cc) if cc == "\n" # push this back on the stream to signal end-of-row next time.
+            return '""' if cc = '"'  # We found an escaped double-quote
+            raise StopIteration if cc == @delimiter || cc.nil? || cc == "\n"
             raise "The only valid character that can follow a double quote is a delimiter or another double quote. Instead got: [#{cc}]"
+          end
         end
       end
     end
-  end
-
-  # We raise an exception of this class to indicate that an end-of-row condition has been encountered.
-  class EndOfRow < Exception
   end
 end

@@ -68,6 +68,8 @@ module TableIo
   # from a source other than a stream. All the reader needs to be able to do is implement read_row().
   # In practice, subclasses will have initialize() methods that accept a stream arg.
   class Reader
+    attr_reader :columns
+
     def initialize
       @columns = read_row # grab the header row that describes the table's columns
     end
@@ -77,27 +79,27 @@ module TableIo
     # Read and return the next row from the stream as a Record object, or raise StopIteration if
     # we are end-of-file.
     def next
-      Record.new(read_row, @columns)
+      row = read_row
+      if row
+        Record.new(row, @columns)
+      else
+        raise StopIteration
+      end
     end
 
 
     def each
-      if block_given?
-        yield next
-      else
-        to_enum
-      end
+      loop {yield self.next}
     end
 
 
     private
 
-    # Read the next row from the stream and return it as an array of string values, or
-    # raise StopIteration if we are at end-of-file.
+    # Read the next row from the source object and return it as an array of string values, or
+    # return nil if there are no more rows.
     def read_row
       raise "The read_row() method must be defined by a subclass of Reader. You can't instantiate a Reader object directly."
     end
-
   end
 
 

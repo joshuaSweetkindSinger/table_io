@@ -33,7 +33,7 @@ module TableIo
         reader = DelimitedReader.new(input_stream)
         File.open('test2.csv', 'w') do |output_stream|
           writer = DelimitedWriter.new(output_stream, reader.columns)
-          writer.convert(reader)
+          reader.each {|record| writer.write(record)}
         end
       end
       files_identical?('test2.csv', 'test1_correct_output.csv')
