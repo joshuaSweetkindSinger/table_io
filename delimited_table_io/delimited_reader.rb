@@ -76,7 +76,7 @@ module TableIo
       class UnquotedValueReader
         def initialize (stream, delimiter)
           @stream    = stream
-          @delimiter = delimiter
+          @logical_char_stream = LogicalCharStream.new(stream, delimiter)
         end
 
         # Return the next value from within the current row.
@@ -84,21 +84,32 @@ module TableIo
         # which is to say that it does not begin with a double-quote character.
         def next
           value = ''
-          @stream.each_char do |c|
-            if c == "\n"
-              @stream.ungetc(c) # Let the caller read this on the next attempt, in order to signal end-of-row
-              return value
-            end
+          @logical_char_stream.each {|c| value << c}
+          value
+        end
 
-            if c == @delimiter
-              return value
-            end
+        # This is a helper class for UnquotedValueReader. It knows how to read characters from
+        # the stream one at a time until an end-of-value marker is reached.
+        class LogicalCharStream
+          def initialize (stream, delimiter)
+            @stream = stream
+            @delimiter = delimiter
+          end
 
-            if c == '"'
-              raise "Values with embedded double-quotes must be surrounded by double-quotes"
-            end
 
-            value << c
+          def each
+            loop {yield self.next}
+          end
+
+
+          def next
+            c = @stream.getc
+            @stream.ungetc(c) if c == "\n" # Let the caller read this on the next attempt, in order to signal end-of-row
+
+            raise "Values with embedded double-quotes must be surrounded by double-quotes" if c == '"'
+            raise StopIteration if c == "\n" || c == @delimiter || c.nil?
+
+            c
           end
         end
       end
