@@ -56,9 +56,9 @@ module TableIo
       # in all cases. The caller has enough context to figure out which is which.
       def next
         c = @stream.getc
-        @stream.ungetc(c)
         raise StopIteration if c.nil? || c == "\n"
 
+        @stream.ungetc(c)
         reader = (c == '"') ? @quoted_value_reader : @unquoted_value_reader
         reader.next
       end
@@ -85,9 +85,8 @@ module TableIo
         def next
           value = ''
           @stream.each_char do |c|
-            print c
             if c == "\n"
-              @stream.ungetc(c) # Let the caller read this on the next attempt, in order to single EndOfRow.
+              @stream.ungetc(c) # Let the caller read this on the next attempt, in order to signal end-of-row
               return value
             end
 
@@ -111,8 +110,7 @@ module TableIo
       class QuotedValueReader
         def initialize (stream, delimiter)
           @stream              = stream
-          @logical_char_stream = LogicalCharStream.new(stream)
-          @delimiter           = delimiter
+          @logical_char_stream = LogicalCharStream.new(stream, delimiter)
         end
 
         # This is a helper method and should only be called by read_value() above.
@@ -124,8 +122,10 @@ module TableIo
 
           value = ''
           @logical_char_stream.each do |c|
-            value << c == '""' ? '"' : c
+            value << (c == '""' ? '"' : c)
           end
+
+          puts "<Q: #{value}>"
 
           value
         end
@@ -137,8 +137,9 @@ module TableIo
         # which is two double quotes in a row, i.e., "". These two chars evaluate to a single logical char,
         # which is returned as the string '""'
         class LogicalCharStream
-          def initialize (stream)
+          def initialize (stream, delimiter)
             @stream = stream
+            @delimiter = delimiter
           end
 
 
@@ -149,17 +150,29 @@ module TableIo
 
           def next
             c = @stream.getc
+            puts c
 
             if c.nil?
               raise "End of file encountered while searching for terminating double quote"
             end
 
-            return c if c != '"'
+            if c != '"'
+              puts "[#{c}]"
+              return c
+            end
+
 
             # We are reading a double-quote. Examine the next character to figure out what logical char to return.
             cc = @stream.getc
+
+            puts cc
+
             @stream.ungetc(cc) if cc == "\n" # push this back on the stream to signal end-of-row next time.
-            return '""' if cc = '"'  # We found an escaped double-quote
+            if cc == '"'  # We found an escaped double-quote
+              puts '[""]'
+              return '""'
+            end
+
             raise StopIteration if cc == @delimiter || cc.nil? || cc == "\n"
             raise "The only valid character that can follow a double quote is a delimiter or another double quote. Instead got: [#{cc}]"
           end
