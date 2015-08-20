@@ -83,7 +83,7 @@ module TableIo
         #   This method may only legitimately be called if the value to be read from the stream is an unquoted value,
         # which is to say that it does not begin with a double-quote character.
         def next
-          @logical_char_stream.inject {|value, c| value << c}
+          @logical_char_stream.each.inject {|value, c| value << c}
         end
 
         # This is a helper class for UnquotedValueReader. It knows how to read characters from
@@ -96,7 +96,11 @@ module TableIo
 
 
           def each
-            loop {yield self.next}
+            if block_given?
+              loop {yield self.next}
+            else
+              to_enum
+            end
           end
 
 
