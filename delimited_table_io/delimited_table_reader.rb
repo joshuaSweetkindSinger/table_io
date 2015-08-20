@@ -13,6 +13,8 @@ require '~/Documents/personal/dev/table_io/table_io'
 module TableIo
   class DelimitedTableReader < Reader
     DEFAULT_DELIMITER = ','
+    QUOTE = '"'         # This is the character that can be used to wrap a value containing the delimiter.
+    ROW_END_CHAR = "\n" # This is the character that terminates rows of a table.
 
     def initialize (stream, delimiter = DEFAULT_DELIMITER)
       @row_reader = RowReader.new(stream, delimiter)
@@ -49,12 +51,11 @@ module TableIo
 
 
 
-
     # This is a helper class used only by DelimitedReader. It knows how to read and
     # return the next string value from stream, and raises StopIteration at end-of-row
     class ValueReader
       def initialize (stream, delimiter)
-        if (delimiter == '"')
+        if (delimiter == QUOTE)
           raise 'Cannot use the double-quote character as a delimiter'
         end
 
@@ -86,9 +87,9 @@ module TableIo
       # in all cases. The caller has enough context to figure out which is which.
       def next
         c = @stream.getc
-        raise StopIteration if c.nil? || c == "\n"
+        raise StopIteration if c.nil? || c == ROW_END_CHAR
 
-        char_stream = (c == '"') ? @quoted_value_char_stream : @unquoted_value_char_stream
+        char_stream = (c == QUOTE) ? @quoted_value_char_stream : @unquoted_value_char_stream
         @stream.ungetc(c) if char_stream == @unquoted_value_char_stream # We just read a character this reader needs--put it back
         char_stream.each.inject {|value, c| value << c}
       end
@@ -117,10 +118,10 @@ module TableIo
         # Get the next character in stream, raising StopIteration when an end-of-value marker is reached.
         def next
           c = @stream.getc
-          @stream.ungetc(c) if c == "\n" # Let the caller read this on the next attempt, in order to signal end-of-row
+          @stream.ungetc(c) if c == ROW_END_CHAR # Let the caller read this on the next attempt, in order to signal end-of-row
 
-          raise 'Values with embedded double-quotes must be surrounded by double-quotes' if c == '"'
-          raise StopIteration if c == "\n" || c == @delimiter || c.nil?
+          raise 'Values with embedded double-quotes must be surrounded by double-quotes' if c == QUOTE
+          raise StopIteration if c == ROW_END_CHAR || c == @delimiter || c.nil?
 
           c
         end
@@ -149,26 +150,25 @@ module TableIo
         end
 
 
-        # Get the next logical character in stream, raising StopIteration when an end-of-value marker is reached.
-        #   All chars evaluate to themselves except the double double-quote,
-        # which is two double quotes in a row, i.e., "". These two chars evaluate to a single logical char,
-        # which is returned as the string '""'
+        # Get the next logical character in stream, raising StopIteration when the closing QUOTE mark is reached.
+        # Note that it is possible to encounter a QUOTE char that is NOT the closing QUOTE mark, because quote
+        # marks can be escaped by proceeding them with another quote mark. This sequence of two QUOTES one
+        # right after the other is called a double-QUOTE, and it is returned as the single char QUOTE,
+        # without raising a StopIteration signal.  All other chars evaluate to themselves.
         def next
           c = @stream.getc
 
-          raise "End of file encountered while searching for terminating double quote" if c.nil?
+          raise 'End of file encountered while searching for terminating double quote' if c.nil?
 
-          return c if c != '"'
+          return c if c != QUOTE
 
-          # We just read a double-quote. Examine the next character to figure out what logical char to return.
+          # We just read a QUOTE. Examine the next character to figure out what logical char to return.
           c = @stream.getc
+          @stream.ungetc(c) if c == ROW_END_CHAR # push this back on the stream to signal end-of-row next time.
 
-          @stream.ungetc(c) if c == "\n" # push this back on the stream to signal end-of-row next time.
-
-          return '"' if c == '"'  # We found an escaped double-quote
-
-          raise StopIteration if c == @delimiter || c.nil? || c == "\n"
-          raise "The only valid character that can follow a double quote is a delimiter or another double quote. Instead got: [#{cc}]"
+          return QUOTE if c == QUOTE  # We found an escaped double-quote
+          raise StopIteration if c == @delimiter || c.nil? || c == ROW_END_CHAR
+          raise "The only valid character that can follow a double quote is a delimiter or another double quote. Instead got: [#{c}]"
         end
       end
     end
