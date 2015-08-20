@@ -83,9 +83,7 @@ module TableIo
         #   This method may only legitimately be called if the value to be read from the stream is an unquoted value,
         # which is to say that it does not begin with a double-quote character.
         def next
-          value = ''
-          @logical_char_stream.each {|c| value << c}
-          value
+          @logical_char_stream.inject {|value, c| value << c}
         end
 
         # This is a helper class for UnquotedValueReader. It knows how to read characters from
@@ -106,7 +104,7 @@ module TableIo
             c = @stream.getc
             @stream.ungetc(c) if c == "\n" # Let the caller read this on the next attempt, in order to signal end-of-row
 
-            raise "Values with embedded double-quotes must be surrounded by double-quotes" if c == '"'
+            raise 'Values with embedded double-quotes must be surrounded by double-quotes' if c == '"'
             raise StopIteration if c == "\n" || c == @delimiter || c.nil?
 
             c
@@ -142,7 +140,7 @@ module TableIo
         end
 
 
-        # This is a helper class for QuotedValueReader. It knows how to read the nexts logical
+        # This is a helper class for QuotedValueReader. It knows how to read the next logical
         # character from the stream, in the context of reading a quoted value.
         #   All chars evaluate to themselves except the double double-quote,
         # which is two double quotes in a row, i.e., "". These two chars evaluate to a single logical char,
