@@ -11,16 +11,19 @@
 #
 # There are three main types of objects: Reader, Writer, and Record.
 # A Record object is a generic representation of a record in a table: it maps column names to their values.
-# A Reader object is initialized from a stream opened to a table and turns it into an enumeration of Record objects.
-# A Writer object is initialized from a reader object and turns it back into an enumeration of characters representing the table.
+# A Reader object is initialized from a stream opened to a table and turns it into an iterator of Record objects, also called a "record stream".
+# A Writer object is initialized from a record stream and turns it back into an iterator of characters representing the table.
 #
-# If r is a Reader, then r.each is an enumeration of the records of its source table. Also, r.columns is an
+# If r is a Reader, then r is an iterator of the records of its source table,
+# and r.each is an enumeration of the same. Also, r.columns is an
 # array of strings representing the names of the table's columns, in column-order. Note that the first element
 # of the enumeration is *not* the column header. You only get that via r.columns.
 
-# If w is a Writer, then w.each is an enumeration of the character sequence that represents the source records.
-# Since this is a text representation of the table, the initial characters in the sequence *will* be the table's
-# column header, which defines the column names and column order of the table.
+# If w is a Writer, then w is an iterator of the character sequence that represents the source records,
+# and w.each is an enumeration of the same. Since this is a text representation of the table,
+# the initial characters in the sequence *will* be the table's
+# column header, which defines the column names and column order of the table. If r is a Reader, then both r
+# and r.each are suitable initializers for a Writer object. The former is preferred.
 #
 # Currently this file implements readers and writers for delimited files, such as csv or tab-delimited, as well
 # as readers and writers for JSON and XML formats. These latter two are mainly for show, to prove that the architecture
@@ -69,8 +72,8 @@ module TableIo
   #                           Reader (Base Class)
   # ===========================================================================
   # A Reader object is initialized from a stream that is opened to the table in question.
-  # It turns the stream into an enumeration of its records. If r is a reader,
-  # initialized to stream my_table, then r.each is an enumeration of that table's records.
+  # If r is a reader, initialized to stream my_table, then r is an iterator of that table's records, and r.each
+  # is an enumeration of the same.
   #   This is a base class. It is not instantiable. For an example of an instantiable class, see DelimitedReader.
   #   Derived classes must define a @row_reader member variable: an object with a next() method that returns the next
   # row of the table from the stream as an array of strings, or raises StopIteration if there are no more rows to read.
@@ -105,13 +108,12 @@ module TableIo
   # ===========================================================================
   #                           Writer (Base Class)
   # ===========================================================================
-  # A Writer object is initialized from a record stream, which is an enumeration
-  # of the successive records of the table to be written. The Reader sub-classes
-  # in this project have each() methods that return suitable record streams.
-  #    The Writer object turns this into another enumeraton: an enumeration of the character sequence that represents
-  # the table, according to the writer's format. If w is a Writer object,
-  # initialized from a stream of records belonging to my_table, then w.each is an enumeration of the character
-  # sequence that represents my_table according to w's format.
+  # A Writer object is initialized from a record iterator of the successive records
+  # of the table to be written. The Reader sub-classes
+  # in this project provide objects that are suitable record iterators.
+  #   If w is a Writer object, initialized from a record iterator belonging to my_table,
+  # then w is an iterator of the character sequence that represents my_table according to w's format,
+  # and w.each is an enumeration of the same.
   #    This is a base class. It is not instantiable. For an example of an instantiable class,
   # see DelimitedWriter.
   #    Derived classes must define a record_to_string(record) method that converts record
@@ -120,6 +122,7 @@ module TableIo
   # of columns to be the column header for the table. It is assumed that this should occupy the initial characters of the table's
   # text representation.
   class Writer
+    # Inputs: record_stream is a record iterator, an instance of one of the Reader subclasses.
     def initialize (record_stream)
       @record_stream  = record_stream
       @record_writer  = nil     # This needs to be initialized by the derived class.

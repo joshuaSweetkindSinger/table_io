@@ -32,7 +32,7 @@ module TableIo
       File.open('test1.csv') do |input_stream|
         reader = DelimitedTableReader.new(input_stream)
         File.open('test2.csv', 'w') do |output_stream|
-          writer = DelimitedWriter.new(reader)
+          writer = DelimitedWriter.new(reader.each)
           writer.each {|c| output_stream.print(c)}
         end
       end
