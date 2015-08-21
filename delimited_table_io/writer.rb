@@ -23,14 +23,15 @@ module TableIo
       QUOTE = '"'         # This is the character that can be used to wrap a value containing the delimiter.
       ROW_END_CHAR = "\n" # This is the character that terminates rows of a table.
 
-      def initialize (input_stream, delimiter = DEFAULT_DELIMITER)
+      def initialize (stream = nil, delimiter = DEFAULT_DELIMITER)
         if (@delimiter == QUOTE)
           raise 'Cannot use the double-quote character as a delimiter'
         end
 
-        super(input_stream)
         @delimiter = delimiter
         @row = '' # Used to build up a string representing a row before returning it.
+
+        super(stream)
       end
 
 

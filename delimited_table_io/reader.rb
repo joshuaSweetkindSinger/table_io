@@ -18,13 +18,19 @@ require '~/Documents/personal/dev/table_io/table_io'
 module TableIo
   module Delimited
     class Reader < TableIo::Reader
-      def initialize (input_stream, delimiter = DEFAULT_DELIMITER)
-        super(input_stream)
-        @row_reader = RowReader.new(input_stream, delimiter)
+      def initialize (stream = nil, delimiter = DEFAULT_DELIMITER)
+        @delimiter = delimiter  # We must assign this before calling super, in case input_stream= is called by super.
+        super(stream)
       end
 
       def header
         @row_reader.next
+      end
+
+      def input_stream= (stream)
+        super(stream)
+        @row_reader = RowReader.new(stream, @delimiter)
+        stream
       end
 
 
@@ -35,6 +41,7 @@ module TableIo
       # the parent class IoTable::Reader.
       class RowReader
         def initialize(stream, delimiter)
+          @input_stream = stream
           @value_reader = ValueReader.new(stream, delimiter)
         end
 
@@ -46,11 +53,16 @@ module TableIo
         end
 
 
-        # Return the next row of data from the delimited stream as an array of strings, or return
-        # nil if there are no more rows.
+        # Return the next row of data from the delimited stream as an array of strings, or raise
+        # StopIteration of their are no more rows, and close the input stream.
         def next
           row = @value_reader.each.inject([]) {|row, v| row << v}
-          raise StopIteration if row.empty?
+
+          if row.empty?
+            @input_stream.close
+            raise StopIteration
+          end
+
           row
         end
       end
@@ -65,7 +77,7 @@ module TableIo
             raise 'Cannot use the double-quote character as a delimiter'
           end
 
-          @input_stream                     = stream
+          @input_stream               = stream
           @quoted_value_char_stream   = QuotedValueCharStream.new(stream, delimiter)
           @unquoted_value_char_stream = UnquotedValueCharStream.new(stream, delimiter)
         end
@@ -107,8 +119,8 @@ module TableIo
         # An unquoted value is a value that does not begin with a double-quote.
         class UnquotedValueCharStream
           def initialize (stream, delimiter)
-            @input_stream    = stream
-            @delimiter = delimiter
+            @input_stream  = stream
+            @delimiter     = delimiter
           end
 
           # Iterate through each character in stream until an end-of-value marker is reached,

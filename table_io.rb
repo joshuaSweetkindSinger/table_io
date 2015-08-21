@@ -3,11 +3,11 @@
 # The architecture is extensible so that new readers and writers
 # can be defined for different formats.
 #
-# The functionality of this module can be used to read records from a spreadsheet one at a time,
+# The functionality of this module can be used to read records from a table one at a time,
 # possibly altering them, or filtering them, and then writing them back out to a file using a possibly
-# different table format. It can also be used to generate new spreadsheets by generating their records/rows
+# different table format. It can also be used to generate new tables by generating their records/rows
 # one at a time and then writing them out in the desired format. Or it can be used simply to to convert
-# a spreadsheet from one format to another.
+# a table from one format to another.
 #
 # There are three main types of objects: Reader, Writer, and Record.
 # A Record object is a generic representation of a record in a table: it maps column names to their values.
@@ -25,6 +25,11 @@
 # column header, which defines the column names and column order of the table. If r is a Reader, then both r
 # and r.each are suitable initializers for a Writer object. The former is preferred.
 #
+# It can be useful to chain together readers, writers, and other stream processors in order to transform
+# an initial input file into an altered, filtered version of the file in another format, with each processor
+# in the chain performing a single task. Such a chain is called a "pipe", and the readers and writers defined
+# in this project support piping via the >> operator. See TestSameFormatUsingPipe in do_tests.rb for an example.
+
 # Currently this file implements readers and writers for delimited files, such as csv or tab-delimited, as well
 # as readers and writers for JSON and XML formats. These latter two are mainly for show, to prove that the architecture
 # is extensible. It is unlikely one would really want to use these formats in real life.
@@ -32,9 +37,9 @@
 # The top-level instantiable classes are DelimitedReader, DelimitedWriter, JsonReader, JsonWriter, XmlReader, and XmlWriter.
 
 module TableIo
-  # This module contains methods common to all readers and writers
-  module Common
-    # Iterate through each of the records in the table, passing them in turn to the block for processing,
+  # This module contains helper methods common to many of the classes used in the project.
+  module Helpers
+    # Iterate through each of the items in our iterator, passing them in turn to the block for processing,
     # or return an Enumeration if no block is given.
     def each
       if block_given?
@@ -44,31 +49,23 @@ module TableIo
       end
     end
 
-    # Tell output, which should be a reader or writer, to take input from ourselves.
-    # This effectively creates a pipe with input from ourselves and output from
-    # output, which itself will be an iterator, unless it's a sink. If output is a sink,
-    # then it will drive the pipe and pull everything from its input, writing to its output file.
-    # See SinkFile class below.
+    # It can be convenient to pipe readers and writers together for the purpose
+    # of translating and/or filtering tables. The >> operator allows one to establish a chain
+    # of stream processors, known as a pipe.
+    #    Tell output, which should be a processor of an input_stream, such as a reader or writer,
+    # to take input from ourselves.
+    #    This effectively establishes a pipe from ourselves to output, which itself will
+    # be an iterator, unless it's a sink. Return output as the value of the pipe operation.
+    #    If output is a sink, then it will drive the pipe and pull everything from its
+    # input, writing to its output file. See the SinkFile class below.
     def >> (output)
-      output.input(self)
+      output.input_stream = self
+      output
     end
-
-
-    # Create a new instance of ourselves for use in a pipe. This means that
-    # instead of specifying our input stream as part of initialization, it will be
-    # specified by the pipe operator (>>, above) instead.
-    def self.pipe (*args)
-      self.new(nil, *args) # the first arg is the stream, which we set to nil, but the pipe will initialize that later.
-    end
-
-
-    # Assign input_stream as our input stream. This method is called by the pipe operator >> above.
-    def input (input_stream)
-      @input_stream = input_stream
-      self
-    end
-
   end
+
+
+
   # ===========================================================================
   #                           Record
   # ===========================================================================
@@ -106,6 +103,22 @@ module TableIo
   end
 
   # ===========================================================================
+  #                           Base (Base class for Reader and Writer)
+  # ===========================================================================
+  # This is a base class containing methods common to all readers and writers
+  class StreamProcessor
+    include Helpers
+    attr_accessor :input_stream
+
+    # NOTE: If we are being used as part of a pipe, stream will be nil at initialize time.
+    # We must define the input_stream=() method to handle
+    # initializing the input stream at a possibly later time. See the >> operator above.
+    def initialize (stream = nil)
+      self.input_stream = stream if stream # Initialize stream only if it was specified.
+    end
+  end
+
+  # ===========================================================================
   #                           Reader (Base Class)
   # ===========================================================================
   # A Reader object is initialized from a file stream that is opened to the table in question.
@@ -116,14 +129,13 @@ module TableIo
   # row of the table from the stream as an array of strings, or raises StopIteration if there are no more rows to read.
   # Derived classes must also define a header() method that reads and returns the table's column definitions as an array of strings.
   # It is assumed that the column definitions will be the first row or rows of the table.
-  class Reader
-    include Common
+  class Reader < StreamProcessor
     attr_reader :columns
 
-    def initialize (stream)
-      @input_stream = stream
+    def initialize (stream = nil)
       @columns      = nil
       @row_reader   = nil # This needs to be initialized by the derived class.
+      super(stream)
     end
 
     # Return the next row from the stream as a Record object, or raise StopIteration if
@@ -151,16 +163,14 @@ module TableIo
   #    Derived classes must also define a header(columns) method that returns the string representation
   # of columns to be the column header for the table. It is assumed that this should occupy the initial characters of the table's
   # text representation.
-  class Writer
-    include Common
-
+  class Writer < StreamProcessor
     # Inputs: record_stream is a record iterator, an instance of one of the Reader subclasses.
-    def initialize (record_stream)
-      @input_stream   = record_stream
+    def initialize (record_stream = nil)
       @record_writer  = nil     # This needs to be initialized by the derived class.
       @header_written = false
       @buffer = '' # This buffer holds the characters in the table representation as we decode them from successive records.
                    # Characters are returned from the buffer when next() is called.
+      super(record_stream)
     end
 
     # Return the next character in the string representation of the table
@@ -207,37 +217,40 @@ module TableIo
     end
   end
 
-
-
   # ===========================================================================
-  #                           Useful Functions Facilitating Pipes
+  #                           Odds And Ends Related to Pipes
   # ===========================================================================
-  # It can be convenient to pipe readers and writers together for the purpose
-  # of translating and/or filtering tables. The >> operator defined in the Common
-  # module above does most of that work. This section just takes cares of some odds and ends
-  # related to establishing the source and sink of a pipeline.
-
   # Return a source acceptable as the left edge of a pipe. The specified filename
   # will be used to generate an iterator on its characters.
   def self.source(filename)
     SourceFile.new filename
   end
 
-  class SourceFile
-    include Common
 
+  # This class facilitates the use of pipes. No need to instantiate it directly. See the function source() above.
+  # It is a thin wrapper on an IO stream that understands the >> operator, provides each() and next() methods,
+  # and passes all other messages on to the underlying input stream.
+  class SourceFile < StreamProcessor
     def initialize (filename)
-      @file = File.open(filename)
+      super(File.open(filename))
     end
 
     # Return the next char from @file, raising StopIteration when EOF.
     def next
-      @file.readchar
+      @input_stream.readchar
     rescue EOFError
-      @file.close
+      @input_stream.close
       raise StopIteration
     end
+
+    def method_missing (m, *args)
+      @input_stream.send(m, *args)
+    end
   end
+
+
+
+
 
   # Return a sink acceptable as the right edge of a pipe. The characters received from
   # the pipe's input will be written to filename.
@@ -245,34 +258,34 @@ module TableIo
     SinkFile.new filename
   end
 
-
-  class SinkFile
+  # This class facilitates the use of pipes. No need to instantiate it directly. See the function sink() above.
+  class SinkFile < StreamProcessor
     # filename is the file to write to. When we are hooked up to a pipe, we will automatically
     # process the input and write to filename, unless dont_run is true. In that case, the pipe
     # operator will merely return us without running, and the caller must explicitly call run() to
     # run the pipe.
     def initialize (filename, dont_run = false)
-      @file     = File.open(filename, 'w')
-      @dont_run = dont_run
+      @output_stream = File.open(filename, 'w')
+      @dont_run      = dont_run
+      super(nil)
     end
 
-    # Hook ourselves up to the character iterator <input_stream>
-    # and then run the pipe, unless our init options tell us not to. Return ourselves in any event.
-    def input (input_stream)
-      @input_stream = input_stream
-      run unless @dont_run
-      self
-    end
-
-    # Run the pipe: pull characters from @input_stream and write them to @file, closing the file when
+    # Run the pipe: pull characters from @input_stream and write them to @output_stream, closing it when
     # we are done.
     def run
       @input_stream.each do |c|
-        @file.putc(c)
+        @output_stream.putc(c)
       end
-    rescue StopIteration
-      @file.close
+      @output_stream.close
+    end
+
+
+    # Hook ourselves up to the character iterator <stream>
+    # and then run the pipe, unless our init options tell us not to. Return ourselves in any event.
+    def input_stream= (stream)
+      super(stream)
+      run unless @dont_run
+      self
     end
   end
-
 end

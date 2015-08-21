@@ -9,13 +9,23 @@ module TableIo
       tests.each {|test| test.run}
     end
 
-    def self.files_identical? (file1, file2)
-      File.open(file1) do |stream1|
-        File.open(file2) do |stream2|
-          while (!stream1.eof? || !stream2.eof?) && (stream1.getc == stream2.getc)
-          end
-          stream1.eof? && stream2.eof?
+    module Helpers
+      module_function
+
+      def files_identical? (file1, file2)
+        stream1 = File.open(file1)
+        stream2 = File.open(file2)
+        i = 0
+        while stream1.each_char.next == stream2.each_char.next
+          i += 1
         end
+        raise StopIteration
+      rescue StopIteration
+        identical = stream1.eof? && stream2.eof?
+        puts "Files differ. Stopped at char #{i}" if !identical
+        stream1.close
+        stream2.close
+        identical
       end
     end
 
@@ -50,7 +60,7 @@ module TableIo
         @passed  = yield
         @has_run = true
 
-        if test.passed?
+        if passed?
           print 'passed'
         else
           print 'failed'
@@ -63,6 +73,8 @@ module TableIo
 
     # Test that we can read in a file and write it back out in the same format without problem.
     class TestSameFormat < Test
+      include Helpers
+
       def run
         with_run_scaffold do
           File.open('test1.csv') do |input_stream|
@@ -80,11 +92,13 @@ module TableIo
 
 
 
-    class TestSameFormatUsingPipe
+    class TestSameFormatUsingPipe < Test
+      include Helpers
+
       def run
         with_run_scaffold do
-          source('test1.csv') >> Delimited::Reader.pipe >> Delimited::Writer.pipe >> sink('test2.csv')
-          files_identical?('test1_correct_output.csv', 'test2.csv')
+          TableIo::source('test1.csv') >> Delimited::Reader.new >> Delimited::Writer.new >> TableIo::sink('test3.csv')
+          files_identical?('test1_correct_output.csv', 'test3.csv')
         end
       end
     end
