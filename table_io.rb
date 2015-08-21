@@ -71,8 +71,8 @@ module TableIo
   # ===========================================================================
   #                           Reader (Base Class)
   # ===========================================================================
-  # A Reader object is initialized from a stream that is opened to the table in question.
-  # If r is a reader, initialized to stream my_table, then r is an iterator of that table's records, and r.each
+  # A Reader object is initialized from a file stream that is opened to the table in question.
+  # If r is a reader, initialized to the stream my_table, then r is an iterator of that table's records, and r.each
   # is an enumeration of the same.
   #   This is a base class. It is not instantiable. For an example of an instantiable class, see DelimitedReader.
   #   Derived classes must define a @row_reader member variable: an object with a next() method that returns the next
@@ -88,13 +88,15 @@ module TableIo
       @row_reader = nil # This needs to be initialized by the derived class.
     end
 
-    # Read and return the next row from the stream as a Record object, or raise StopIteration if
+    # Return the next row from the stream as a Record object, or raise StopIteration if
     # we are end-of-file.
     def next
       @columns = header if !@columns
       Record.new(@row_reader.next, @columns)
     end
 
+    # Iterate through each of the records in the table, passing them in turn to the block for processing,
+    # or return an Enumeration if no block is given.
     def each
       if block_given?
         loop {yield self.next}
@@ -131,6 +133,17 @@ module TableIo
                    # Characters are returned from the buffer when next() is called.
     end
 
+    # Return the next character in the string representation of the table
+    # represented by the record stream from which we were initialized, or raise StopIteration
+    # if there are no more records.
+    def next
+      write_record(@record_stream.next) if @buffer.empty?
+      pop_buffer
+    end
+
+    # Iterate through each of the characters in the string representation of the table represented
+    # by the record stream from which we were initialized, passing each char in turn to the block
+    # for processing, or return an Enumeration if no block was given.
     def each
       if block_given?
         loop {yield self.next}
@@ -139,24 +152,30 @@ module TableIo
       end
     end
 
-    # Return the next character in the string representation of the table.
-    def next
-      if !@header_written
-        record = @record_stream.next
-        @buffer << header(record.columns)
-        @header_written = true
-        @buffer << record_to_string(record)
-      end
+    private
 
-      if @buffer.empty?
-        @buffer << record_to_string(@record_stream.next)
-      end
+    # Write out record to our internal buffer so that its characters can be returned
+    # via successive calls to next(). If the header has not yet been written, write
+    # that out first.
+    def write_record (record)
+      write_header(record) if !@header_written
+      @buffer << record_to_string(record)
+    end
+
+    # Write out the header to our internal buffer so that its characters can be returned
+    # via successive calls to next()
+    def write_header (record)
+      @buffer << header(record.columns)
+      @header_written = true
+    end
+
+    # pop the first character off of our internal buffer.
+    def pop_buffer
       c = @buffer[0]
-      @buffer[0] =''
+      @buffer[0] = ''
       c
     end
 
-    private
 
     # Write record to @stream using our format. The public method is write(). See above.
     def record_to_string (record)
