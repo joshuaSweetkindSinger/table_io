@@ -39,7 +39,7 @@ module TableIo
     end
 
     def self.test_same_format_using_pipe
-      Pipe.new('test1.csv') >> DelimitedTableReader >> DelimitedTableWriter >> 'test2.csv'
+      source('test1.csv') >> DelimitedTableReader.pipe >> DelimitedTableWriter.pipe >> sink('test2.csv')
     end
   end
 end

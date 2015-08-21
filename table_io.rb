@@ -43,6 +43,28 @@ module TableIo
         to_enum
       end
     end
+
+    # Tell output, which should be a reader or writer, to take input from ourselves.
+    # This effectively creates a pipe with input from ourselves and output from
+    # output, which itself will be an iterator, unless it's a sink. If output is a sink,
+    # then it will drive the pipe and pull everything from its input, writing to its output file.
+    # See SinkFile class below.
+    def >> (output)
+      output.input(self)
+    end
+
+    # Create a new instance of ourselves for use in a pipe. This means that
+    # instead of specifying our input stream as part of initialization, it will be
+    # specified by the pipe operator (>>, above) instead.
+    def self.pipe (*args)
+      self.new(nil, *args) # the first arg is the stream, which we set to nil, but the pipe will initialize that later.
+    end
+
+    # Assign input_stream as our input stream. This method is called by the pipe operator >> above.
+    def input (input_stream)
+      @stream = input_stream
+    end
+
   end
   # ===========================================================================
   #                           Record
@@ -128,10 +150,10 @@ module TableIo
   # text representation.
   class Writer
     include Common
-    
+
     # Inputs: record_stream is a record iterator, an instance of one of the Reader subclasses.
     def initialize (record_stream)
-      @record_stream  = record_stream
+      @stream  = record_stream
       @record_writer  = nil     # This needs to be initialized by the derived class.
       @header_written = false
       @buffer = '' # This buffer holds the characters in the table representation as we decode them from successive records.
@@ -142,7 +164,7 @@ module TableIo
     # represented by the record stream from which we were initialized, or raise StopIteration
     # if there are no more records.
     def next
-      write_record(@record_stream.next) if @buffer.empty?
+      write_record(@stream.next) if @buffer.empty?
       pop_buffer
     end
 
@@ -188,34 +210,36 @@ module TableIo
   #                           Useful Functions Facilitating Pipes
   # ===========================================================================
   # It can be convenient to pipe readers and writers together for the purpose
-  # of translating and/or filtering tables. These functions facilitate that.
+  # of translating and/or filtering tables. The >> operator defined in the Common
+  # module above does most of that work. This section just takes cares of some odds and ends
+  # related to establishing the source and sink of a pipeline.
 
-  # Create a new instance of output_class, initialized with input_iterator providing its input.
-  # This effectively creates a pipe with input from input_iterator and output from the newly-created
-  # instance of output_class, which itself will be an iterator.
-  def >> (input_iterator, output_class)
-    output_class.new(input_iterator)
-  end
-
+  # Return a source acceptable as the left edge of a pipe. The specified filename
+  # will be used to generate an iterator on its characters.
   def source(filename)
     SourceFile.new filename
   end
 
-  def sink(filename)
-    SinkFile.new filename
-  end
-
   class SourceFile
+    include Common
+
     def initialize (filename)
       @file = File.open(filename)
     end
 
+    # Return the next char from @file, raising StopIteration when EOF.
     def next
       @file.readchar
     rescue EOFError
       @file.close
       raise StopIteration
     end
+  end
+
+  # Return a sink acceptable as the right edge of a pipe. The characters received from
+  # the pipe's input will be written to filename.
+  def sink(filename)
+    SinkFile.new filename
   end
 
 
@@ -224,11 +248,15 @@ module TableIo
       @file = File.open(filename, 'w')
     end
 
-    def next
-      @file.readchar
-    rescue EOFError
+    # Hook ourselves up to the character iterator <input> and write all its chars
+    # to @file, closing the file when we are done.
+    def input (input)
+      @input = input # for debugging purposes. This isn't really needed
+      input.each do |c|
+        @file.putc(c)
+      end
+    rescue StopIteration
       @file.close
-      raise StopIteration
     end
   end
 
