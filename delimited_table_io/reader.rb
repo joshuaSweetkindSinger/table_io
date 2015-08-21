@@ -18,9 +18,9 @@ require '~/Documents/personal/dev/table_io/table_io'
 module TableIo
   module Delimited
     class Reader < TableIo::Reader
-      def initialize (stream, delimiter = DEFAULT_DELIMITER)
-        super(stream)
-        @row_reader = RowReader.new(stream, delimiter)
+      def initialize (input_stream, delimiter = DEFAULT_DELIMITER)
+        super(input_stream)
+        @row_reader = RowReader.new(input_stream, delimiter)
       end
 
       def header
@@ -65,7 +65,7 @@ module TableIo
             raise 'Cannot use the double-quote character as a delimiter'
           end
 
-          @stream                     = stream
+          @input_stream                     = stream
           @quoted_value_char_stream   = QuotedValueCharStream.new(stream, delimiter)
           @unquoted_value_char_stream = UnquotedValueCharStream.new(stream, delimiter)
         end
@@ -92,11 +92,11 @@ module TableIo
         # This would raise an ambiguity as to whether we should raise EOF or EndOfRow. So we just raise StopIteration
         # in all cases. The caller has enough context to figure out which is which.
         def next
-          c = @stream.getc
+          c = @input_stream.getc
           raise StopIteration if c.nil? || c == ROW_END_CHAR
 
           char_stream = (c == QUOTE) ? @quoted_value_char_stream : @unquoted_value_char_stream
-          @stream.ungetc(c) if char_stream == @unquoted_value_char_stream # We just read a character this reader needs--put it back
+          @input_stream.ungetc(c) if char_stream == @unquoted_value_char_stream # We just read a character this reader needs--put it back
           char_stream.each.inject {|value, c| value << c}
         end
 
@@ -107,7 +107,7 @@ module TableIo
         # An unquoted value is a value that does not begin with a double-quote.
         class UnquotedValueCharStream
           def initialize (stream, delimiter)
-            @stream    = stream
+            @input_stream    = stream
             @delimiter = delimiter
           end
 
@@ -123,8 +123,8 @@ module TableIo
 
           # Get the next character in stream, raising StopIteration when an end-of-value marker is reached.
           def next
-            c = @stream.getc
-            @stream.ungetc(c) if c == ROW_END_CHAR # Let the caller read this on the next attempt, in order to signal end-of-row
+            c = @input_stream.getc
+            @input_stream.ungetc(c) if c == ROW_END_CHAR # Let the caller read this on the next attempt, in order to signal end-of-row
 
             raise 'Values with embedded double-quotes must be surrounded by double-quotes' if c == QUOTE
             raise StopIteration if c == ROW_END_CHAR || c == @delimiter || c.nil?
@@ -140,7 +140,7 @@ module TableIo
         # A quoted value is a value that begins with a double-quote.
         class QuotedValueCharStream
           def initialize (stream, delimiter)
-            @stream    = stream
+            @input_stream    = stream
             @delimiter = delimiter
           end
 
@@ -162,15 +162,15 @@ module TableIo
           # right after the other is called a double-QUOTE, and it is returned as the single char QUOTE,
           # without raising a StopIteration signal.  All other chars evaluate to themselves.
           def next
-            c = @stream.getc
+            c = @input_stream.getc
 
             raise 'End of file encountered while searching for terminating double quote' if c.nil?
 
             return c if c != QUOTE
 
             # We just read a QUOTE. Examine the next character to figure out what logical char to return.
-            c = @stream.getc
-            @stream.ungetc(c) if c == ROW_END_CHAR # push this back on the stream to signal end-of-row next time.
+            c = @input_stream.getc
+            @input_stream.ungetc(c) if c == ROW_END_CHAR # push this back on the stream to signal end-of-row next time.
 
             return QUOTE if c == QUOTE  # We found an escaped double-quote
             raise StopIteration if c == @delimiter || c.nil? || c == ROW_END_CHAR

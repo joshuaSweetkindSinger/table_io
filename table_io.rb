@@ -53,6 +53,7 @@ module TableIo
       output.input(self)
     end
 
+
     # Create a new instance of ourselves for use in a pipe. This means that
     # instead of specifying our input stream as part of initialization, it will be
     # specified by the pipe operator (>>, above) instead.
@@ -60,9 +61,11 @@ module TableIo
       self.new(nil, *args) # the first arg is the stream, which we set to nil, but the pipe will initialize that later.
     end
 
+
     # Assign input_stream as our input stream. This method is called by the pipe operator >> above.
     def input (input_stream)
-      @stream = input_stream
+      @input_stream = input_stream
+      self
     end
 
   end
@@ -118,9 +121,9 @@ module TableIo
     attr_reader :columns
 
     def initialize (stream)
-      @stream     = stream
-      @columns    = nil
-      @row_reader = nil # This needs to be initialized by the derived class.
+      @input_stream = stream
+      @columns      = nil
+      @row_reader   = nil # This needs to be initialized by the derived class.
     end
 
     # Return the next row from the stream as a Record object, or raise StopIteration if
@@ -153,7 +156,7 @@ module TableIo
 
     # Inputs: record_stream is a record iterator, an instance of one of the Reader subclasses.
     def initialize (record_stream)
-      @stream  = record_stream
+      @input_stream   = record_stream
       @record_writer  = nil     # This needs to be initialized by the derived class.
       @header_written = false
       @buffer = '' # This buffer holds the characters in the table representation as we decode them from successive records.
@@ -164,7 +167,7 @@ module TableIo
     # represented by the record stream from which we were initialized, or raise StopIteration
     # if there are no more records.
     def next
-      write_record(@stream.next) if @buffer.empty?
+      write_record(@input_stream.next) if @buffer.empty?
       pop_buffer
     end
 
@@ -216,7 +219,7 @@ module TableIo
 
   # Return a source acceptable as the left edge of a pipe. The specified filename
   # will be used to generate an iterator on its characters.
-  def source(filename)
+  def self.source(filename)
     SourceFile.new filename
   end
 
@@ -238,21 +241,33 @@ module TableIo
 
   # Return a sink acceptable as the right edge of a pipe. The characters received from
   # the pipe's input will be written to filename.
-  def sink(filename)
+  def self.sink(filename)
     SinkFile.new filename
   end
 
 
   class SinkFile
-    def initialize (filename)
-      @file = File.open(filename, 'w')
+    # filename is the file to write to. When we are hooked up to a pipe, we will automatically
+    # process the input and write to filename, unless dont_run is true. In that case, the pipe
+    # operator will merely return us without running, and the caller must explicitly call run() to
+    # run the pipe.
+    def initialize (filename, dont_run = false)
+      @file     = File.open(filename, 'w')
+      @dont_run = dont_run
     end
 
-    # Hook ourselves up to the character iterator <input> and write all its chars
-    # to @file, closing the file when we are done.
-    def input (input)
-      @input = input # for debugging purposes. This isn't really needed
-      input.each do |c|
+    # Hook ourselves up to the character iterator <input_stream>
+    # and then run the pipe, unless our init options tell us not to. Return ourselves in any event.
+    def input (input_stream)
+      @input_stream = input_stream
+      run unless @dont_run
+      self
+    end
+
+    # Run the pipe: pull characters from @input_stream and write them to @file, closing the file when
+    # we are done.
+    def run
+      @input_stream.each do |c|
         @file.putc(c)
       end
     rescue StopIteration
