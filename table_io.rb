@@ -32,6 +32,18 @@
 # The top-level instantiable classes are DelimitedReader, DelimitedWriter, JsonReader, JsonWriter, XmlReader, and XmlWriter.
 
 module TableIo
+  # This module contains methods common to all readers and writers
+  module Common
+    # Iterate through each of the records in the table, passing them in turn to the block for processing,
+    # or return an Enumeration if no block is given.
+    def each
+      if block_given?
+        loop {yield self.next}
+      else
+        to_enum
+      end
+    end
+  end
   # ===========================================================================
   #                           Record
   # ===========================================================================
@@ -80,6 +92,7 @@ module TableIo
   # Derived classes must also define a header() method that reads and returns the table's column definitions as an array of strings.
   # It is assumed that the column definitions will be the first row or rows of the table.
   class Reader
+    include Common
     attr_reader :columns
 
     def initialize (stream)
@@ -93,16 +106,6 @@ module TableIo
     def next
       @columns = header if !@columns
       Record.new(@row_reader.next, @columns)
-    end
-
-    # Iterate through each of the records in the table, passing them in turn to the block for processing,
-    # or return an Enumeration if no block is given.
-    def each
-      if block_given?
-        loop {yield self.next}
-      else
-        to_enum
-      end
     end
   end
 
@@ -124,6 +127,8 @@ module TableIo
   # of columns to be the column header for the table. It is assumed that this should occupy the initial characters of the table's
   # text representation.
   class Writer
+    include Common
+    
     # Inputs: record_stream is a record iterator, an instance of one of the Reader subclasses.
     def initialize (record_stream)
       @record_stream  = record_stream
@@ -139,17 +144,6 @@ module TableIo
     def next
       write_record(@record_stream.next) if @buffer.empty?
       pop_buffer
-    end
-
-    # Iterate through each of the characters in the string representation of the table represented
-    # by the record stream from which we were initialized, passing each char in turn to the block
-    # for processing, or return an Enumeration if no block was given.
-    def each
-      if block_given?
-        loop {yield self.next}
-      else
-        to_enum
-      end
     end
 
     private
@@ -187,4 +181,55 @@ module TableIo
       raise "The header() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
     end
   end
+
+
+
+  # ===========================================================================
+  #                           Useful Functions Facilitating Pipes
+  # ===========================================================================
+  # It can be convenient to pipe readers and writers together for the purpose
+  # of translating and/or filtering tables. These functions facilitate that.
+
+  # Create a new instance of output_class, initialized with input_iterator providing its input.
+  # This effectively creates a pipe with input from input_iterator and output from the newly-created
+  # instance of output_class, which itself will be an iterator.
+  def >> (input_iterator, output_class)
+    output_class.new(input_iterator)
+  end
+
+  def source(filename)
+    SourceFile.new filename
+  end
+
+  def sink(filename)
+    SinkFile.new filename
+  end
+
+  class SourceFile
+    def initialize (filename)
+      @file = File.open(filename)
+    end
+
+    def next
+      @file.readchar
+    rescue EOFError
+      @file.close
+      raise StopIteration
+    end
+  end
+
+
+  class SinkFile
+    def initialize (filename)
+      @file = File.open(filename, 'w')
+    end
+
+    def next
+      @file.readchar
+    rescue EOFError
+      @file.close
+      raise StopIteration
+    end
+  end
+
 end
