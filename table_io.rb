@@ -49,17 +49,22 @@ module TableIo
     end
 
     # It can be convenient to pipe readers and writers together for the purpose
-    # of translating and/or filtering tables. The >> operator allows one to establish a chain
+    # of translating and/or filtering tables. The pipe method allows one to establish a chain
     # of stream processors, known as a pipe.
-    #    Tell output, which should be a processor of an input_stream, such as a reader or writer,
+    #    Tell output, which should be a stream processor, such as a reader or writer,
     # to take input from ourselves.
     #    This effectively establishes a pipe from ourselves to output, which itself will
-    # be an iterator, unless it's a sink. Return output as the value of the pipe operation.
+    # be an iterator, unless output is a sink. Return output as the value of the pipe operation.
     #    If output is a sink, then it will drive the pipe and pull everything from its
     # input, writing to its output file. See the SinkFile class below.
-    def >> (output)
+    def pipe (output)
       output.input_stream = self
       output
+    end
+
+    # This is an operator synonym for pipe().
+    def >> (output)
+      pipe(output)
     end
   end
 

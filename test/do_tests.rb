@@ -97,10 +97,10 @@ module TableIo
 
       def run
         with_run_scaffold do
-          TableIo::source('test1.csv') >>
-            Delimited::Reader.new >>
-            Delimited::Writer.new >>
-            TableIo::sink('test3.csv')
+          TableIo::source('test1.csv')
+            .pipe(Delimited::Reader.new)
+            .pipe(Delimited::Writer.new)
+            .pipe(TableIo::sink('test3.csv'))
 
           files_identical?('test1_correct_output.csv', 'test3.csv')
         end
