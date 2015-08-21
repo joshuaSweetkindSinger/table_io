@@ -22,17 +22,18 @@ module TableIo
   # ===========================================================================
   #                           Record
   # ===========================================================================
-  # A Record object represents a single row from the spreadsheet.
-  # The record has accessor methods for each column name. Thus, if the spreadsheet
+  # A Record object represents a single row from the table.
+  # The record has accessor methods for each column name. Thus, if the table
   # has a column called 'foo', and r is a record, then r.foo is its 'foo' value.
   # The raw record information is stored in the member variable @hash, with @hash[column_name] being
-  # the record's value for column_name.
+  # the record's value for column_name. The record knows the original order of its columns
+  # in the table. These are stored in @columns.
   class Record
-    attr_accessor :hash
-
+    attr_accessor :hash, :columns
 
     def initialize (row, columns)
       @hash = {}
+      @columns = columns
       columns.each_with_index do |column_name, index|
         @hash[column_name] = row[index]
       end
@@ -57,11 +58,10 @@ module TableIo
   # ===========================================================================
   #                           Reader (Base Class)
   # ===========================================================================
-  # A Reader object is initialized from a source object--typically a stream--that is opened
-  # to the table in question.
-  #   It knows how to read and return the next record from the table. It is an external
-  # iterator, and calling to_enum() on it will return an Enumerable.
-  #   This is a base class. It is not instantiable. For example of an instantiable class, see DelimitedReader.
+  # A Reader object is initialized from a source table object--typically a stream--that is opened
+  # to the table in question. It turns the source into an enumeration of its records. If r is a reader,
+  # initialized to the source table object my_table,  then r.each is an enumeration of that table's records.
+  #   This is a base class. It is not instantiable. For an example of an instantiable class, see DelimitedReader.
   # Derived classes must define a @row_reader member variable: an object with a next() method that returns the next
   # row of the source object, or raises StopIteration if there are no more rows to read.
   class Reader

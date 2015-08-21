@@ -38,6 +38,10 @@ module TableIo
       end
       files_identical?('test2.csv', 'test1_correct_output.csv')
     end
+
+    def self.test_same_format_using_pipe
+      Pipe.new('test1.csv') >> DelimitedTableReader >> DelimitedTableWriter >> 'test2.csv'
+    end
   end
 end
 

@@ -1,12 +1,15 @@
 require '~/Documents/personal/dev/table_io/table_io'
 
-# A DelimitedReader object is initialized from a stream that is opened to the table in question.
-# It knows how to read and return the next record from the spreadsheet. Use a delimited reader
-# for csv files (the default), and for any other kind of delimited file, such as tab delimited.
-# If the delimiter is not a comma, you must specify the delimiter when you initialize the Reader.
+# A DelimitedReader object knows how to read records from a delimited table.
+# It is initialized from a stream that is opened to the table in question.
+# It turns the stream into an enumeration of records. If delim_reader is a Delimited Reader object,
+# initialized to the stream "my_table.csv", then delim.reader.each is an enumeration of the records
+# in "my_table.csv".
+#   Use a delimited reader to read csv files (the default), and for any other kind of delimited file, such as tab delimited.
+# If the table's delimiter is not a comma, you must specify the delimiter when you initialize the Reader.
 # The reader is capable of handling values that contain the delimiter itself. These values must be surrounded
 # in double-quotes. The reader is also capable of reading values that include double-quotes. These must be
-# escaped by using double-double-quotes, i.e., "" is used to represent a single double-quote.
+# escaped by using double-double-quotes, i.e., "" is used to represent a single double-quote within a value.
 #
 # The DelimitedReader's public methods are already defined by its parent class. This file just defines
 # the internal functionality necessary to realize the class.
