@@ -4,13 +4,23 @@
 # can be defined for different formats.
 #
 # The functionality of this module can be used to read records from a spreadsheet one at a time,
-# possibly altering them, or filtering them, and then writing back out to a file using a possibly
+# possibly altering them, or filtering them, and then writing them back out to a file using a possibly
 # different table format. It can also be used to generate new spreadsheets by generating their records/rows
 # one at a time and then writing them out in the desired format. Or it can be used simply to to convert
-# a spreadsheet from one format to another. (See Writer.convert())
+# a spreadsheet from one format to another.
 #
-# A Reader object has a read() method that reads a new record/row from a spreadsheet and returns a Record object.
-# A Writer object has a write() method that accepts a Record object and writes a new row to a spreadsheet.
+# There are three main types of objects: Reader, Writer, and Record.
+# A Record object is a generic representation of a record in a table: it maps column names to their values.
+# A Reader object is initialized from a stream opened to a table and turns it into an enumeration of Record objects.
+# A Writer object is initialized from a reader object and turns it back into an enumeration of characters representing the table.
+#
+# If r is a Reader, then r.each is an enumeration of the records of its source table. Also, r.columns is an
+# array of strings representing the names of the table's columns, in column-order. Note that the first element
+# of the enumeration is *not* the column header. You only get that via r.columns.
+
+# If w is a Writer, then w.each is an enumeration of the character sequence that represents the source records.
+# Since this is a text representation of the table, the initial characters in the sequence *will* be the table's
+# column header, which defines the column names and column order of the table.
 #
 # Currently this file implements readers and writers for delimited files, such as csv or tab-delimited, as well
 # as readers and writers for JSON and XML formats. These latter two are mainly for show, to prove that the architecture
@@ -58,22 +68,27 @@ module TableIo
   # ===========================================================================
   #                           Reader (Base Class)
   # ===========================================================================
-  # A Reader object is initialized from a source table object--typically a stream--that is opened
-  # to the table in question. It turns the source into an enumeration of its records. If r is a reader,
-  # initialized to the source table object my_table,  then r.each is an enumeration of that table's records.
+  # A Reader object is initialized from a stream that is opened to the table in question.
+  # It turns the stream into an enumeration of its records. If r is a reader,
+  # initialized to stream my_table, then r.each is an enumeration of that table's records.
   #   This is a base class. It is not instantiable. For an example of an instantiable class, see DelimitedReader.
-  # Derived classes must define a @row_reader member variable: an object with a next() method that returns the next
-  # row of the source object, or raises StopIteration if there are no more rows to read.
+  #   Derived classes must define a @row_reader member variable: an object with a next() method that returns the next
+  # row of the table from the stream as an array of strings, or raises StopIteration if there are no more rows to read.
+  # Derived classes must also define a header() method that reads and returns the table's column definitions as an array of strings.
+  # It is assumed that the column definitions will be the first row or rows of the table.
   class Reader
     attr_reader :columns
 
-    def initialize
-      @columns = @row_reader.next # grab the header row that describes the table's columns
+    def initialize (stream)
+      @stream     = stream
+      @columns    = nil
+      @row_reader = nil # This needs to be initialized by the derived class.
     end
 
     # Read and return the next row from the stream as a Record object, or raise StopIteration if
     # we are end-of-file.
     def next
+      @columns = header if !@columns
       Record.new(@row_reader.next, @columns)
     end
 
@@ -90,42 +105,64 @@ module TableIo
   # ===========================================================================
   #                           Writer (Base Class)
   # ===========================================================================
-  # A Writer object is initialized from a stream that is opened for writing, with the
-  # intent of writing rows in a particular spreadsheet format, such as csv, or tab-delimited, etc.
-  # It is told the stream to write to, the columns that should be written, and whether or not a
-  # header row should be written. It then responds to write(record) commands, where record is taken
-  # to be a record that contains the columns of interest. Note that the writer need not write all
-  # the columns in record--just those it is asked to write.
-  #  This is a base class. It is not instantiable. See, for example, DelimitedWriter. Derived classes
-  # must define write_record() and write_header() methods.
+  # A Writer object is initialized from a record stream, which is an enumeration
+  # of the successive records of the table to be written. The Reader sub-classes
+  # in this project have each() methods that return suitable record streams.
+  #    The Writer object turns this into another enumeraton: an enumeration of the character sequence that represents
+  # the table, according to the writer's format. If w is a Writer object,
+  # initialized from a stream of records belonging to my_table, then w.each is an enumeration of the character
+  # sequence that represents my_table according to w's format.
+  #    This is a base class. It is not instantiable. For an example of an instantiable class,
+  # see DelimitedWriter.
+  #    Derived classes must define a record_to_string(record) method that converts record
+  # into its string representation, including any row-termination character.
+  #    Derived classes must also define a header(columns) method that returns the string representation
+  # of columns to be the column header for the table. It is assumed that this should occupy the initial characters of the table's
+  # text representation.
   class Writer
-    def initialize (stream, columns, options = {})
-      @stream         = stream
-      @columns        = columns
-      @options        = {write_header: true}.merge(options)
+    def initialize (record_stream)
+      @record_stream  = record_stream
+      @record_writer  = nil     # This needs to be initialized by the derived class.
       @header_written = false
+      @buffer = '' # This buffer holds the characters in the table representation as we decode them from successive records.
+                   # Characters are returned from the buffer when next() is called.
     end
 
-    # Write record to @stream, possibly writing a header first if necessary.
-    def write (record)
-      if !@header_written && @options[:write_header]
-        write_header
+    def each
+      if block_given?
+        loop {yield self.next}
+      else
+        to_enum
+      end
+    end
+
+    # Return the next character in the string representation of the table.
+    def next
+      if !@header_written
+        record = @record_stream.next
+        @buffer << header(record.columns)
         @header_written = true
+        @buffer << record_to_string(record)
       end
 
-      write_record record
+      if @buffer.empty?
+        @buffer << record_to_string(@record_stream.next)
+      end
+      c = @buffer[0]
+      @buffer[0] =''
+      c
     end
 
     private
 
     # Write record to @stream using our format. The public method is write(). See above.
-    def write_record (record)
-      raise "The write_record() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
+    def record_to_string (record)
+      raise "The record_to_string() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
     end
 
     # Write a column header to the stream.
-    def write_header
-      raise "The write_header() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
+    def header (columns)
+      raise "The header() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
     end
   end
 end

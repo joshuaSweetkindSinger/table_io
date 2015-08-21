@@ -20,8 +20,12 @@ module TableIo
     ROW_END_CHAR = "\n" # This is the character that terminates rows of a table.
 
     def initialize (stream, delimiter = DEFAULT_DELIMITER)
+      super(stream)
       @row_reader = RowReader.new(stream, delimiter)
-      super()
+    end
+
+    def header
+      @row_reader.next
     end
 
 
