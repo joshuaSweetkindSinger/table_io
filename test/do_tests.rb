@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
-require '~/Documents/personal/dev/table_io/table_io'
-require '~/Documents/personal/dev/table_io/delimited_table_io/delimited_table_reader'
-require '~/Documents/personal/dev/table_io/delimited_table_io/delimited_writer'
+require '~/Documents/personal/dev/table_io/delimited_table_io/delimited_table_io'
+
 
 module TableIo
   module Test
@@ -30,9 +29,9 @@ module TableIo
     # Test that we can read in a file and write it back out in the same format without problem.
     def self.test_same_format
       File.open('test1.csv') do |input_stream|
-        reader = DelimitedTableReader.new(input_stream)
+        reader = Delimited::Reader.new(input_stream)
         File.open('test2.csv', 'w') do |output_stream|
-          writer = DelimitedWriter.new(reader.each)
+          writer = Delimited::Writer.new(reader.each)
           writer.each {|c| output_stream.print(c)}
         end
       end
