@@ -101,7 +101,7 @@ module TableIo
             Delimited::Reader.new >>
             Delimited::Writer.new >>
             TableIo::sink('test3.csv')
-          
+
           files_identical?('test1_correct_output.csv', 'test3.csv')
         end
       end

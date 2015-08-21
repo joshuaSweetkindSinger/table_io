@@ -1,7 +1,6 @@
 # This file implements the TableIO module, which knows how to read and write
-# records/rows stored as table-data in a number of different formats, such as csv.
-# The architecture is extensible so that new readers and writers
-# can be defined for different formats.
+# records/rows stored as table-data (like a spreadsheet) in a number of different formats, such as csv.
+# The architecture is extensible so that new readers and writers can be defined for different formats.
 #
 # The functionality of this module can be used to read records from a table one at a time,
 # possibly altering them, or filtering them, and then writing them back out to a file using a possibly
