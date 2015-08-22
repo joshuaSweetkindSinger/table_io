@@ -1,4 +1,4 @@
-# Table IO
+# Table Io
 This module knows how to read and write records/rows stored as table-data (like a spreadsheet)
 in a number of different formats, such as csv.
 The architecture is extensible so that new readers and writers can be defined for different file formats.
