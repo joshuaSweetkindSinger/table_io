@@ -51,7 +51,7 @@ be the table's column header, which defines the column names and column order of
 The top-level instantiable classes are `DelimitedReader`, `DelimitedWriter`,
 `JsonReader`, `JsonWriter`, `XmlReader`, and `XmlWriter`.
 
-## PIPES
+## Pipes
 It can be useful to chain together readers, writers, and other stream processors in order to transform
 an initial input file into an altered, filtered version of the file in another format, with each processor
 in the chain performing a single task. Such a chain is called a "pipe", and the readers and writers defined
