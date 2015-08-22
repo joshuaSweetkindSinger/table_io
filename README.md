@@ -3,12 +3,9 @@ This module knows how to read and write records/rows stored as table-data (like 
 in a number of different formats, such as csv.
 The architecture is extensible so that new readers and writers can be defined for different file formats.
 
-The functionality of this module can be used to read records from a table file, such as a csv
-spreadsheet, one at a time,
-possibly altering them or filtering them, and then writing them back out to another file using a possibly
-different table format. It can also be used to create new tables by generating their records/rows
-one at a time and then writing them out in the desired format. Or it can be used simply to to convert
-a table from one format to another.
+The functionality of this module can be used to process records one at a time from a table file,
+such as a csv spreadsheet, before writing them back out, possibly in a new format. It can be used
+to filter records, alter records, or simply to convert a table from one format to another.
 
 ## Installation
 There is no installation script needed. Just copy the table_io directory and all its contents as-is
