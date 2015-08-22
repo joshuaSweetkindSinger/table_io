@@ -12,9 +12,9 @@ There is no installation script needed. Just copy the table_io directory and all
 into your code-base. To use one of its classes in your code, simply ensure that your ruby $LOAD_PATH
 can find table_io. For example, to use the delimited table reader and write classes, you would do
 
-  require 'table_io/delimited_table_io'
-  my_reader = TableIo::Delimited::Reader
-  my_writer = TableIo::Delimited:Writer
+    require 'table_io/delimited_table_io'
+    my_reader = TableIo::Delimited::Reader
+    my_writer = TableIo::Delimited:Writer
 
 ## Architecture Details
 
