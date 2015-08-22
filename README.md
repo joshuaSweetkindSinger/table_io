@@ -48,8 +48,8 @@ and w.each is an enumeration of the same.
 be the table's column header, which defines the column names and column order of the table.
 
 ### Instantiable Classes
-The top-level instantiable classes are DelimitedReader, DelimitedWriter,
-JsonReader, JsonWriter, XmlReader, and XmlWriter.
+The top-level instantiable classes are `DelimitedReader`, `DelimitedWriter`,
+`JsonReader`, `JsonWriter`, `XmlReader`, and _XmlWriter_.
 
 ## PIPES
 It can be useful to chain together readers, writers, and other stream processors in order to transform
