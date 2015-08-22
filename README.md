@@ -49,7 +49,7 @@ be the table's column header, which defines the column names and column order of
 
 ### Instantiable Classes
 The top-level instantiable classes are `DelimitedReader`, `DelimitedWriter`,
-`JsonReader`, `JsonWriter`, `XmlReader`, and _XmlWriter_.
+`JsonReader`, `JsonWriter`, `XmlReader`, and `XmlWriter`.
 
 ## PIPES
 It can be useful to chain together readers, writers, and other stream processors in order to transform
