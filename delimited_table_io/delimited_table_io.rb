@@ -1,6 +1,6 @@
-require '~/Documents/personal/dev/table_io/table_io'
-require '~/Documents/personal/dev/table_io/delimited_table_io/reader'
-require '~/Documents/personal/dev/table_io/delimited_table_io/writer'
+require_relative '../table_io'
+require_relative 'reader'
+require_relative 'writer'
 
 # This is the top level file for the definition of Delimited reader and writer classes.
 # These classes know how to read and write tables represented in delimited format, such as csv files.

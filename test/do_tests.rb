@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
-require '~/Documents/personal/dev/table_io/delimited_table_io/delimited_table_io'
+require_relative '../delimited_table_io/delimited_table_io'
 
 
 module TableIo
   module Tests
+    THIS_DIR = File.dirname(__FILE__)
+
     def self.do_tests
       tests = [TestSameFormat.new, TestSameFormatUsingPipe.new]
       tests.each {|test| test.run}
@@ -76,16 +78,20 @@ module TableIo
       include Helpers
 
       def run
+        input_filename            = "#{THIS_DIR}/test1.csv"
+        output_filename           = "#{THIS_DIR}/test2.csv"
+        canonical_output_filename = "#{THIS_DIR}/test1_correct_output.csv"
+
         with_run_scaffold do
-          File.open('test1.csv') do |input_stream|
+          File.open(input_filename) do |input_stream|
             reader = Delimited::Reader.new(input_stream)
-            File.open('test2.csv', 'w') do |output_stream|
+            File.open(output_filename, 'w') do |output_stream|
               writer = Delimited::Writer.new(reader.each)
               writer.each {|c| output_stream.print(c)}
             end
           end
 
-          files_identical?('test1_correct_output.csv', 'test2.csv')
+          files_identical?(canonical_output_filename, output_filename)
         end
       end
     end
@@ -96,13 +102,17 @@ module TableIo
       include Helpers
 
       def run
+        input_filename            = "#{THIS_DIR}/test1.csv"
+        output_filename           = "#{THIS_DIR}/test3.csv"
+        canonical_output_filename = "#{THIS_DIR}/test1_correct_output.csv"
+
         with_run_scaffold do
-          TableIo::source('test1.csv')
+          TableIo::source(input_filename)
             .pipe(Delimited::Reader.new)
             .pipe(Delimited::Writer.new)
-            .pipe(TableIo::sink('test3.csv'))
+            .pipe(TableIo::sink(output_filename))
 
-          files_identical?('test1_correct_output.csv', 'test3.csv')
+          files_identical?(canonical_output_filename, output_filename)
         end
       end
     end

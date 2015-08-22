@@ -1,4 +1,4 @@
-require '~/Documents/personal/dev/table_io/table_io'
+require_relative '../table_io'
 
 # This file defines the class TableIo::Delimited::Reader.
 # A Delimited::Reader object knows how to read records from a delimited table.

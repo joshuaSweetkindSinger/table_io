@@ -1,4 +1,4 @@
-require '~/Documents/personal/dev/table_io/table_io'
+require_relative '../table_io'
 
 # This file defines the class TableIo::Delimited::Writer.
 # A Delimited::Writer object knows how to write records from a record stream into a delimited
