@@ -7,7 +7,7 @@ module TableIo
     THIS_DIR = File.dirname(__FILE__)
 
     def self.do_tests
-      tests = [TestSameFormat.new, TestSameFormatUsingPipe.new]
+      tests = [TestSameFormatUsingPipe.new]
       tests.each {|test| test.run}
     end
 
@@ -107,10 +107,10 @@ module TableIo
         canonical_output_filename = "#{THIS_DIR}/events_correct_output.csv"
 
         with_run_scaffold do
-          TableIo::source(input_filename)
+          Pipe::source(input_filename)
             .pipe(Delimited::Reader.new)
             .pipe(Delimited::Writer.new)
-            .pipe(TableIo::sink(output_filename))
+            .pipe(Pipe::sink(output_filename))
 
           files_identical?(canonical_output_filename, output_filename)
         end

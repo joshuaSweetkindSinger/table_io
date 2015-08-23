@@ -1,9 +1,10 @@
+require_relative 'pipe'
 
 # This file just implements the base classes that create the infrastructure. The instantiable classes
 # are in their own sub-directories
 
 module TableIo
-
+  include Pipe
   # ===========================================================================
   #                           Record
   # ===========================================================================
@@ -40,61 +41,13 @@ module TableIo
     end
   end
 
-  # ===========================================================================
-  #                           Base (Base class for Reader and Writer)
-  # ===========================================================================
-  # This is a base class containing methods common to all readers and writers
-  # TODO: say more. This provides underlying functionality for processing elements from a stream
-  class StreamProcessor
-    attr_accessor :input_stream
 
-    # NOTE: If we are being used as part of a pipe, stream will be nil at initialize time.
-    # We must define the input_stream=() method to handle
-    # initializing the input stream at a possibly later time. See the >> operator above.
-    def initialize (stream = nil)
-      self.input_stream = stream if stream # Initialize stream only if it was specified.
-    end
-
-    # Iterate through each of the items in our iterator, passing them in turn to the block for processing,
-    # or return an Enumeration if no block is given.
-    def each
-      if block_given?
-        loop {yield self.next}
-      else
-        to_enum
-      end
-    end
-
-    # TODO: document
-    def next
-      @input_stream.next
-    end
-
-    # It can be convenient to pipe readers and writers together for the purpose
-    # of translating and/or filtering tables. The pipe method allows one to establish a chain
-    # of stream processors, known as a pipe.
-    #    Tell output, which should be a stream processor, such as a reader or writer,
-    # to take input from ourselves.
-    #    This effectively establishes a pipe from ourselves to output, which itself will
-    # be an iterator, unless output is a sink. Return output as the value of the pipe operation.
-    #    If output is a sink, then it will drive the pipe and pull everything from its
-    # input, writing to its output file. See the SinkFile class below.
-    def pipe (output)
-      output.input_stream = self
-      output
-    end
-
-    # This is an operator synonym for pipe().
-    def >> (output)
-      pipe(output)
-    end
-  end
 
   # ===========================================================================
   #                           Reader (Base Class)
   # ===========================================================================
-  # A Reader object is initialized from a file stream that is opened to the table in question.
-  # If r is a reader, initialized to the stream my_table, then r is an iterator of that table's records, and r.each
+  # A Reader object's input stream is a SourceFile stream (see pipe.rb) that is opened to the table in question.
+  # If r is a reader, with input from the stream my_table, then r is an iterator of that table's records, and r.each
   # is an enumeration of the same.
   #   This is a base class. It is not instantiable. For an example of an instantiable class, see DelimitedReader.
   #   Derived classes must define a @row_reader member variable: an object with a next() method that returns the next
@@ -103,12 +56,6 @@ module TableIo
   # It is assumed that the column definitions will be the first row or rows of the table.
   class Reader < StreamProcessor
     attr_reader :columns
-
-    def initialize (stream = nil)
-      @columns      = nil
-      @row_reader   = nil # This needs to be initialized by the derived class.
-      super(stream)
-    end
 
     # Return the next row from the stream as a Record object, or raise StopIteration if
     # we are end-of-file.
@@ -137,19 +84,18 @@ module TableIo
   # text representation.
   class Writer < StreamProcessor
     # Inputs: record_stream is a record iterator, an instance of one of the Reader subclasses.
-    def initialize (record_stream = nil)
+    def initialize
       @record_writer  = nil     # This needs to be initialized by the derived class.
       @header_written = false
       @buffer = '' # This buffer holds the characters in the table representation as we decode them from successive records.
                    # Characters are returned from the buffer when next() is called.
-      super(record_stream)
     end
 
     # Return the next character in the string representation of the table
     # represented by the record stream from which we were initialized, or raise StopIteration
     # if there are no more records.
     def next
-      write_record(@input_stream.next) if @buffer.empty?
+      write_record(input_stream.next) if @buffer.empty?
       pop_buffer
     end
 
@@ -186,78 +132,6 @@ module TableIo
     # Write a column header to the stream.
     def header (columns)
       raise "The header() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
-    end
-  end
-
-  # ===========================================================================
-  #                           Odds And Ends Related to Pipes
-  # ===========================================================================
-  # Return a source acceptable as the left edge of a pipe. The specified filename
-  # will be used to generate an iterator on its characters.
-  def self.source(filename)
-    SourceFile.new filename
-  end
-
-
-  # This class facilitates the use of pipes. No need to instantiate it directly. See the function source() above.
-  # It is a thin wrapper on an IO stream that understands the >> operator, provides each() and next() methods,
-  # and passes all other messages on to the underlying input stream.
-  class SourceFile < StreamProcessor
-    def initialize (filename)
-      super(File.open(filename))
-    end
-
-    # Return the next char from @file, raising StopIteration when EOF.
-    def next
-      @input_stream.readchar
-    rescue EOFError
-      @input_stream.close
-      raise StopIteration
-    end
-
-    def method_missing (m, *args)
-      @input_stream.send(m, *args)
-    end
-  end
-
-
-
-
-
-  # Return a sink acceptable as the right edge of a pipe. The characters received from
-  # the pipe's input will be written to filename.
-  def self.sink(filename)
-    SinkFile.new filename
-  end
-
-  # This class facilitates the use of pipes. No need to instantiate it directly. See the function sink() above.
-  class SinkFile < StreamProcessor
-    # filename is the file to write to. When we are hooked up to a pipe, we will automatically
-    # process the input and write to filename, unless dont_run is true. In that case, the pipe
-    # operator will merely return us without running, and the caller must explicitly call run() to
-    # run the pipe.
-    def initialize (filename, dont_run = false)
-      @output_stream = File.open(filename, 'w')
-      @dont_run      = dont_run
-      super(nil)
-    end
-
-    # Run the pipe: pull characters from @input_stream and write them to @output_stream, closing it when
-    # we are done.
-    def run
-      @input_stream.each do |c|
-        @output_stream.putc(c)
-      end
-      @output_stream.close
-    end
-
-
-    # Hook ourselves up to the character iterator <stream>
-    # and then run the pipe, unless our init options tell us not to. Return ourselves in any event.
-    def input_stream= (stream)
-      super(stream)
-      run unless @dont_run
-      self
     end
   end
 end

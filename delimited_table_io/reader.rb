@@ -18,9 +18,9 @@ require_relative '../table_io'
 module TableIo
   module Delimited
     class Reader < TableIo::Reader
-      def initialize (stream = nil, delimiter = DEFAULT_DELIMITER)
+      def initialize (delimiter = DEFAULT_DELIMITER)
+        super()
         @delimiter = delimiter  # We must assign this before calling super, in case input_stream= is called by super.
-        super(stream)
       end
 
       def header
