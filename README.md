@@ -9,9 +9,9 @@ to filter records, alter records, or simply to convert a table from one format t
 
 
 ## Instantiable Classes
-Currently this project implements readers and writers for delimited files, such as csv or tab-delimited, as well
-as readers and writers for JSON and XML formats. These latter two are mainly for show, to prove that the architecture
-is extensible. It is unlikely one would really want to use these formats in real life.
+Currently this project only implements readers and writers for delimited files, such as csv or tab-delimited
+files.
+
 
 ## Installation
 There is no installation script needed. Just copy the table_io directory and all its contents as-is
