@@ -49,8 +49,6 @@ module Pipe
     end
   end
 
-
-
 # Return a source acceptable as the left edge of a pipe. The specified filename
 # will be used to generate an iterator on its characters.
   def self.source(filename)

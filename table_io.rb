@@ -5,15 +5,20 @@ require_relative 'pipe'
 
 module TableIo
   include Pipe
+
+
   # ===========================================================================
   #                           Record
   # ===========================================================================
   # A Record object represents a single row from the table.
   # The record has accessor methods for each column name. Thus, if the table
   # has a column called 'foo', and r is a record, then r.foo is its 'foo' value.
-  # The raw record information is stored in the member variable @hash, with @hash[column_name] being
+  # The raw record information is stored in the member variable @hash, with @hash[column_name.to_sym] being
   # the record's value for column_name. The record knows the original order of its columns
   # in the table. These are stored in @columns.
+  # ATTENTION: Since hash keys are turned into symbols, you cannot access the value of the 'foo'
+  # column of a record r via r.hash['foo']. Instead you would use r.hash[:foo]. Better still,
+  # just use r.foo.
   class Record
     attr_accessor :hash, :columns
 
@@ -21,7 +26,7 @@ module TableIo
       @hash = {}
       @columns = columns
       columns.each_with_index do |column_name, index|
-        @hash[column_name] = row[index]
+        @hash[column_name.to_sym] = row[index]
       end
     end
 
@@ -33,10 +38,12 @@ module TableIo
 
     # This is how we provide Record objects with accessors named after their columns.
     def method_missing (column_name)
+      column_name = column_name.to_sym
+
       if @hash.has_key? (column_name)
         @hash[column_name]
       else
-        raise "Unknown column name: #{column_name}"
+        raise "Unknown column name: #{column_name}. Valid columns are #{@hash.keys}"
       end
     end
   end
@@ -119,7 +126,7 @@ module TableIo
     # pop the first character off of our internal buffer.
     def pop_buffer
       c = @buffer[0]
-      @buffer[0] = ''
+      @buffer[0,1] = ''
       c
     end
 

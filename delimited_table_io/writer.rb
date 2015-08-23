@@ -46,7 +46,7 @@ module TableIo
 
       def record_to_string (record)
         record.columns.each do |column_name|
-          add_to_row record.hash[column_name]
+          add_to_row record.send(column_name)
         end
         write_row
       end
