@@ -2,15 +2,14 @@
 # StreamProcessor objects.
 
 module Pipe
-# This is a base class establishing the stream processing protocol, which relies on
-# the methods pipe() and next().
-#    A Stream processor has an input stream, which is given to it via a call to pipe(input_stream),
-# and emits its own output stream, via a call to next(). There need not be a
-# one-to-one correspondence between input and output. When called upon for its
-# next() element, the processor may read many elements
-# from its own input stream before deciding to emit an element of output.
-#  A stream processor's input stream can be any object that has a next() method and that raises StopIteration
-# when it is out of elements to return.
+  # This is a base class establishing the stream processing protocol.
+  #    A StreamProcessor has an input stream and produces an output stream. The input
+  # stream is assigned to it via a call to pipe(input_stream). The output stream is produced
+  # via a call to each(), which yields its elements one at a time to a block.
+  #   The stream processor's input stream must also be an object that has an each() method,
+  # yielding its elements one at a time to a block.
+  #   Derived classes based on StreamProcessor must define their own each() method, which
+  # defines how they process their input stream.
   class StreamProcessor
     attr_accessor :input_stream
 
@@ -18,10 +17,8 @@ module Pipe
     # each successive element to the block.
     #    This default method just returns the elements of the input stream unchanged.
     def each
-      if block_given?
-        yield self.input_stream.next
-      else
-        to_enum
+      self.input_stream.each do |x|
+        yield x
       end
     end
 
@@ -49,20 +46,22 @@ module Pipe
   end
 
 
-# This class facilitates the use of pipes. No need to instantiate it directly. See the function source() above.
-# It is a thin wrapper on an IO stream that understands the >> operator, provides each() and next() methods,
-# and passes all other messages on to the underlying input stream.
+  # This is a thin wrapper around an input stream.
+  # All it really does it guarantee that its stream is closed when it is done reading from it.
+  # It also provides a slightly smoother syntax for pipes, because it makes its each() method explicit.
+  # Really, we could do without this, and use File.open('my_file.txt').each_char in place of
+  # SourceFile.new('my_file.txt')
   class SourceFile < StreamProcessor
     def initialize (filename)
       self.input_stream = File.open(filename)
     end
 
     # Return the next char from @file, raising StopIteration when EOF.
-    def next
-      self.input_stream.readchar
-    rescue EOFError
-      self.input_stream.close
-      raise StopIteration
+    def each
+      self.input_stream.each_char do |c|
+        yield c
+      end
+      close
     end
 
     def method_missing (m, *args)
@@ -78,15 +77,21 @@ module Pipe
     SinkFile.new filename
   end
 
-# This class facilitates the use of pipes. No need to instantiate it directly. See the function sink() above.
+  # This is a thin wrapper around an output stream. It hooks up its run() method to the input_stream=()
+  # assigment, so that assigning an input to a SinkFile gets the ball rolling and begins processing
+  # of the entire pipe.
   class SinkFile < StreamProcessor
     # filename is the file to write to. When we are hooked up to a pipe, we will automatically
     # process the input and write to filename, unless dont_run is true. In that case, the pipe
-    # operator will merely return us without running, and the caller must explicitly call run() to
-    # run the pipe.
+    # operator will merely return self without running, and the caller must explicitly call run()
+    # on the SinkFile object to process the pipe.
     def initialize (filename, dont_run = false)
       @output_stream = File.open(filename, 'w')
       @dont_run      = dont_run
+    end
+
+    def each
+      raise 'Programmer error: each() shoud not be called on a SinkFile object.'
     end
 
     # Run the pipe: pull characters from @input_stream and write them to @output_stream, closing it when

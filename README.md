@@ -7,6 +7,12 @@ The functionality of this module can be used to process records one at a time fr
 such as a csv spreadsheet, before writing them back out, possibly in a new format. It can be used
 to filter records, alter records, or simply to convert a table from one format to another.
 
+
+## Instantiable Classes
+Currently this project implements readers and writers for delimited files, such as csv or tab-delimited, as well
+as readers and writers for JSON and XML formats. These latter two are mainly for show, to prove that the architecture
+is extensible. It is unlikely one would really want to use these formats in real life.
+
 ## Installation
 There is no installation script needed. Just copy the table_io directory and all its contents as-is
 into your code-base. To use one of its classes in your code, simply ensure that your ruby $LOAD_PATH
@@ -15,6 +21,10 @@ can find table_io. For example, to use the delimited table reader and write clas
     require 'table_io/delimited_table_io'
     my_reader = TableIo::Delimited::Reader
     my_writer = TableIo::Delimited:Writer
+
+
+## Examples
+See the file `examples/example.rb`.
 
 ## Architecture Details
 
@@ -52,14 +62,17 @@ The top-level instantiable classes are `DelimitedReader`, `DelimitedWriter`,
 `JsonReader`, `JsonWriter`, `XmlReader`, and `XmlWriter`.
 
 ## Pipes
-It can be useful to chain together readers, writers, and other stream processors in order to transform
+All file processing is done with pipes. See `pipe.rb'. Readers, writers, and other stream processors
+are chained together in order to transform
 an initial input file into an altered, filtered version of the file in another format, with each processor
 in the chain performing a single task. Such a chain is called a "pipe", and the readers and writers defined
-in this project support piping via the >> operator. See TestSameFormatUsingPipe in do_tests.rb for an example.
+in this project support piping via the pipe() method, and the synonymous >> operator.
+See the examples in `examples/examples.rb`.
 
-Currently this project implements readers and writers for delimited files, such as csv or tab-delimited, as well
-as readers and writers for JSON and XML formats. These latter two are mainly for show, to prove that the architecture
-is extensible. It is unlikely one would really want to use these formats in real life.
+All pipes must begin with a SourceFile object at their "left edge" and must end with a SinkFile object
+at their "right edge". The SinkFile object is what commands the action. It has a run() method that
+triggers the pipe and begins pulling elements through it to be written to the SinkFile's output file.
 
-## Examples
-TBD
+Every StreamProcessor object in a pipe, except for the final SinkFile object, must define an each() method
+that produces the elements of its enumeration as a function of its input stream.
+

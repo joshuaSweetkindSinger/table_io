@@ -42,8 +42,6 @@ module TableIo
 
       if @hash.has_key? (column_name)
         @hash[column_name]
-      else
-        raise "Unknown column name: #{column_name}. Valid columns are #{@hash.keys}"
       end
     end
   end
@@ -66,9 +64,11 @@ module TableIo
 
     # Return the next row from the stream as a Record object, or raise StopIteration if
     # we are end-of-file.
-    def next
+    def each
       @columns = header if !@columns
-      Record.new(@row_reader.next, @columns)
+      loop do
+        yield Record.new(@row_reader.next, @columns)
+      end
     end
   end
 
@@ -93,43 +93,30 @@ module TableIo
     # Inputs: record_stream is a record iterator, an instance of one of the Reader subclasses.
     def initialize
       @record_writer  = nil     # This needs to be initialized by the derived class.
-      @header_written = false
-      @buffer = '' # This buffer holds the characters in the table representation as we decode them from successive records.
-                   # Characters are returned from the buffer when next() is called.
     end
 
     # Return the next character in the string representation of the table
     # represented by the record stream from which we were initialized, or raise StopIteration
     # if there are no more records.
-    def next
-      write_record(input_stream.next) if @buffer.empty?
-      pop_buffer
+    def each
+      header_written = false
+      self.input_stream.each do |record|
+        buffer = ''
+
+        if !header_written
+          buffer << header(record.columns)
+          header_written = true
+        end
+
+        buffer << record_to_string(record)
+
+        buffer.each_char do |c|
+          yield c
+        end
+      end
     end
 
     private
-
-    # Write out record to our internal buffer so that its characters can be returned
-    # via successive calls to next(). If the header has not yet been written, write
-    # that out first.
-    def write_record (record)
-      write_header(record) if !@header_written
-      @buffer << record_to_string(record)
-    end
-
-    # Write out the header to our internal buffer so that its characters can be returned
-    # via successive calls to next()
-    def write_header (record)
-      @buffer << header(record.columns)
-      @header_written = true
-    end
-
-    # pop the first character off of our internal buffer.
-    def pop_buffer
-      c = @buffer[0]
-      @buffer[0,1] = ''
-      c
-    end
-
 
     # Write record to @stream using our format. The public method is write(). See above.
     def record_to_string (record)
