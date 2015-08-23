@@ -78,9 +78,9 @@ module TableIo
       include Helpers
 
       def run
-        input_filename            = "#{THIS_DIR}/test1.csv"
-        output_filename           = "#{THIS_DIR}/test2.csv"
-        canonical_output_filename = "#{THIS_DIR}/test1_correct_output.csv"
+        input_filename            = "#{THIS_DIR}/events.csv"
+        output_filename           = "#{THIS_DIR}/events2.csv"
+        canonical_output_filename = "#{THIS_DIR}/events_correct_output.csv"
 
         with_run_scaffold do
           File.open(input_filename) do |input_stream|
@@ -102,9 +102,9 @@ module TableIo
       include Helpers
 
       def run
-        input_filename            = "#{THIS_DIR}/test1.csv"
-        output_filename           = "#{THIS_DIR}/test3.csv"
-        canonical_output_filename = "#{THIS_DIR}/test1_correct_output.csv"
+        input_filename            = "#{THIS_DIR}/events.csv"
+        output_filename           = "#{THIS_DIR}/events3.csv"
+        canonical_output_filename = "#{THIS_DIR}/events_correct_output.csv"
 
         with_run_scaffold do
           TableIo::source(input_filename)
