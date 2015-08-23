@@ -14,11 +14,15 @@ module Pipe
   class StreamProcessor
     attr_accessor :input_stream
 
-    # Return the next element from our output stream. The default here just returns the next element
-    # from @input_stream without altering it, making it an the "identity" processor. In practice,
-    # this method should be overridden.
-    def next
-      self.input_stream.next
+    # Enumerate the elements of our output by processing our input stream, yielding
+    # each successive element to the block.
+    #    This default method just returns the elements of the input stream unchanged.
+    def each
+      if block_given?
+        yield self.input_stream.next
+      else
+        to_enum
+      end
     end
 
     # The pipe method allows one to establish a chain of stream processors, known as a pipe.
@@ -35,17 +39,6 @@ module Pipe
     # This is an operator synonym for pipe().
     def >> (downstream_processor)
       pipe(downstream_processor)
-    end
-
-
-    # Iterate through each of the items in our iterator, passing them in turn to the block for processing,
-    # or return an Enumeration if no block is given.
-    def each
-      if block_given?
-        loop {yield self.next}
-      else
-        to_enum
-      end
     end
   end
 
