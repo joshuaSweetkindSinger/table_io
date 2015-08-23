@@ -7,7 +7,7 @@ module TableIo
     THIS_DIR = File.dirname(__FILE__)
 
     def self.do_tests
-      tests = [TestSameFormatUsingPipe.new]
+      tests = [TestSameFormat.new]
       tests.each {|test| test.run}
     end
 
@@ -72,33 +72,7 @@ module TableIo
     end
 
 
-
-    # Test that we can read in a file and write it back out in the same format without problem.
     class TestSameFormat < Test
-      include Helpers
-
-      def run
-        input_filename            = "#{THIS_DIR}/events.csv"
-        output_filename           = "#{THIS_DIR}/events2.csv"
-        canonical_output_filename = "#{THIS_DIR}/events_correct_output.csv"
-
-        with_run_scaffold do
-          File.open(input_filename) do |input_stream|
-            reader = Delimited::Reader.new(input_stream)
-            File.open(output_filename, 'w') do |output_stream|
-              writer = Delimited::Writer.new(reader.each)
-              writer.each {|c| output_stream.print(c)}
-            end
-          end
-
-          files_identical?(canonical_output_filename, output_filename)
-        end
-      end
-    end
-
-
-
-    class TestSameFormatUsingPipe < Test
       include Helpers
 
       def run
