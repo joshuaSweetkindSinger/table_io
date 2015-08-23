@@ -3,39 +3,6 @@
 # are in their own sub-directories
 
 module TableIo
-  # This module contains helper methods common to many of the classes used in the project.
-  module Helpers
-    # Iterate through each of the items in our iterator, passing them in turn to the block for processing,
-    # or return an Enumeration if no block is given.
-    def each
-      if block_given?
-        loop {yield self.next}
-      else
-        to_enum
-      end
-    end
-
-    # It can be convenient to pipe readers and writers together for the purpose
-    # of translating and/or filtering tables. The pipe method allows one to establish a chain
-    # of stream processors, known as a pipe.
-    #    Tell output, which should be a stream processor, such as a reader or writer,
-    # to take input from ourselves.
-    #    This effectively establishes a pipe from ourselves to output, which itself will
-    # be an iterator, unless output is a sink. Return output as the value of the pipe operation.
-    #    If output is a sink, then it will drive the pipe and pull everything from its
-    # input, writing to its output file. See the SinkFile class below.
-    def pipe (output)
-      output.input_stream = self
-      output
-    end
-
-    # This is an operator synonym for pipe().
-    def >> (output)
-      pipe(output)
-    end
-  end
-
-
 
   # ===========================================================================
   #                           Record
@@ -77,8 +44,8 @@ module TableIo
   #                           Base (Base class for Reader and Writer)
   # ===========================================================================
   # This is a base class containing methods common to all readers and writers
+  # TODO: say more. This provides underlying functionality for processing elements from a stream
   class StreamProcessor
-    include Helpers
     attr_accessor :input_stream
 
     # NOTE: If we are being used as part of a pipe, stream will be nil at initialize time.
@@ -86,6 +53,40 @@ module TableIo
     # initializing the input stream at a possibly later time. See the >> operator above.
     def initialize (stream = nil)
       self.input_stream = stream if stream # Initialize stream only if it was specified.
+    end
+
+    # Iterate through each of the items in our iterator, passing them in turn to the block for processing,
+    # or return an Enumeration if no block is given.
+    def each
+      if block_given?
+        loop {yield self.next}
+      else
+        to_enum
+      end
+    end
+
+    # TODO: document
+    def next
+      @input_stream.next
+    end
+
+    # It can be convenient to pipe readers and writers together for the purpose
+    # of translating and/or filtering tables. The pipe method allows one to establish a chain
+    # of stream processors, known as a pipe.
+    #    Tell output, which should be a stream processor, such as a reader or writer,
+    # to take input from ourselves.
+    #    This effectively establishes a pipe from ourselves to output, which itself will
+    # be an iterator, unless output is a sink. Return output as the value of the pipe operation.
+    #    If output is a sink, then it will drive the pipe and pull everything from its
+    # input, writing to its output file. See the SinkFile class below.
+    def pipe (output)
+      output.input_stream = self
+      output
+    end
+
+    # This is an operator synonym for pipe().
+    def >> (output)
+      pipe(output)
     end
   end
 
