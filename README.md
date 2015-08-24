@@ -23,7 +23,7 @@ There is no installation script needed. Just copy the table_io directory and all
 into your code-base. To use one of its instantiable classes in your code, simply ensure that your ruby $LOAD_PATH
 can find the `table_io` directory and then `require` the class's file. At the moment, the only instantiable
 classes are the delimited reader and writer classes, so the only meaningful require statement
-is the following: `require 'table_io/delimited_table_io/delimited_table_io'.
+is the following: `require 'table_io/delimited_table_io/delimited_table_io`.
 
 
 ## Examples
