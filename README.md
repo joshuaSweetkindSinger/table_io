@@ -20,9 +20,9 @@ This brief example reads in the csv file 'foo.csv' and writes it out as the tab-
 the input of the next.
 
     Pipe.source('foo.csv')               >> # Read the input file
-    TableIo::Delimited::Reader.new(",")  >> # convert it from csv format to records
-    TableIo::Delimited::Writer.new("\t") >> # convert records to tab-delimited file format.
-    Pipe.sink('foo.txt')                    # write the new tab-delimited file to disk.
+    TableIo::Delimited::Reader.new(",")  >> # Convert it from csv format to records
+    TableIo::Delimited::Writer.new("\t") >> # Convert records to tab-delimited file format.
+    Pipe.sink('foo.txt')                    # Write the new tab-delimited file to disk.
 
 See the file `examples/example.rb` for more examples.
 
