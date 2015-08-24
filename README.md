@@ -9,6 +9,10 @@ to filter records, alter records, or simply to convert a table from one format t
 
 
 ## Instantiable Classes
+The top-level instantiable classes are `DelimitedReader`, `DelimitedWriter`,
+`JsonReader`, `JsonWriter`, `XmlReader`, and `XmlWriter`.
+
+
 Currently this project only implements readers and writers for delimited files, such as csv or tab-delimited
 files.
 
@@ -25,6 +29,23 @@ can find table_io. For example, to use the delimited table reader and write clas
 
 ## Examples
 See the file `examples/example.rb`.
+
+
+## Pipes
+All file processing is done with pipes. See `pipe.rb'. Readers, writers, and other stream processors
+are chained together in order to transform
+an initial input file into an altered, filtered version of the file in another format, with each processor
+in the chain performing a single task. Such a chain is called a "pipe", and the readers and writers defined
+in this project support piping via the pipe() method, and the synonymous >> operator.
+See the examples in `examples/examples.rb`.
+
+All pipes must begin with a SourceFile object at their "left edge" and must end with a SinkFile object
+at their "right edge". The SinkFile object is what commands the action. It has a run() method that
+triggers the pipe and begins pulling elements through it to be written to the SinkFile's output file.
+
+Every StreamProcessor object in a pipe, except for the final SinkFile object, must define an each() method
+that produces the elements of its enumeration as a function of its input stream.
+
 
 ## Architecture Details
 
@@ -56,23 +77,4 @@ then w is an iterator of the character sequence that represents t translated int
 and w.each is an enumeration of the same.
    Since this is a text representation of the table, the initial characters in the sequence *will*
 be the table's column header, which defines the column names and column order of the table.
-
-### Instantiable Classes
-The top-level instantiable classes are `DelimitedReader`, `DelimitedWriter`,
-`JsonReader`, `JsonWriter`, `XmlReader`, and `XmlWriter`.
-
-## Pipes
-All file processing is done with pipes. See `pipe.rb'. Readers, writers, and other stream processors
-are chained together in order to transform
-an initial input file into an altered, filtered version of the file in another format, with each processor
-in the chain performing a single task. Such a chain is called a "pipe", and the readers and writers defined
-in this project support piping via the pipe() method, and the synonymous >> operator.
-See the examples in `examples/examples.rb`.
-
-All pipes must begin with a SourceFile object at their "left edge" and must end with a SinkFile object
-at their "right edge". The SinkFile object is what commands the action. It has a run() method that
-triggers the pipe and begins pulling elements through it to be written to the SinkFile's output file.
-
-Every StreamProcessor object in a pipe, except for the final SinkFile object, must define an each() method
-that produces the elements of its enumeration as a function of its input stream.
 
