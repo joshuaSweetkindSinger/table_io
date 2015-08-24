@@ -27,6 +27,7 @@ is the following: `require 'table_io/delimited_table_io/delimited_table_io'`.
 
 
 ## Examples
+### Convert from csv to tab-delimited format
 This brief example reads in the csv file 'foo.csv' and writes it out as the tab-delimited file
 'foo.txt':
 
@@ -37,10 +38,21 @@ This brief example reads in the csv file 'foo.csv' and writes it out as the tab-
 
 See the file `examples/example.rb` for more examples.
 
+### Find all dessert recipes with fewer than 300 calories
+If you don't want to write out a new file, then you can just use the end of the pipe as an enumeration,
+rather than writing to a SinkFile. In this example, we just return an array of Record objects that
+represent dessert recipes with fewer than 300 calories.
+
+    Pipe.source('desserts.csv')               >> # Read the input file
+    TableIo::Delimited::Reader.new.each.select {|r| r.calories < 300}
+
+
+See the file `examples/example.rb` for more examples.
+
 
 ## Pipes
 All file processing is done with pipes. See `pipe.rb` in this project.
-A pipe is chain of StreamProcessor objects, with the output of one processor
+A pipe is a chain of StreamProcessor objects, with the output of one processor
 providing the input for the next processor in the chain.
 Chaining together StreamProcessor objects into a pipe is how one transforms
 an initial input file into an altered, filtered version of the file in another format, with each processor
@@ -59,6 +71,18 @@ All pipes must begin with a SourceFile object at their "left edge" and must end 
 at their "right edge". The SinkFile object is what commands the action. It has a run() method that
 triggers the pipe and begins pulling elements through it to be written to the SinkFile's output file.
 
+
+## Usage
+### Using Existing Classes
+Using existing classes is as simple as chaining them together in a pipe, in the manner of the examples above,
+in order to transform a table from one form to another. If your end goal isn't to write out another file,
+you can break out of the pipe model and just use the end of the pipe as an enumeration to process the
+table's records in any way you see fit.
+
+### Creating Your Own Classes
+If you want to create your own pair of Reader and Writer classes, just have them inherit from Reader
+or Writer, respectively, and implement the each() method in your class, and you're good to go. You can
+use the Delimited::Reade rand Delimited::Writer classes as examples to work from.
 
 
 ## Architecture Details
