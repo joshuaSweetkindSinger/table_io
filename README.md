@@ -16,7 +16,8 @@ records in a table.
 ## Examples
 ### Convert from csv to tab-delimited format
 This brief example reads in the csv file 'foo.csv' and writes it out as the tab-delimited file
-'foo.txt':
+'foo.txt'. The >> operator is the pipe operator, which passes the output of one processor into
+the input of the next.
 
     Pipe.source('foo.csv')               >> # Read the input file
     TableIo::Delimited::Reader.new(",")  >> # convert it from csv format to records
