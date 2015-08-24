@@ -26,10 +26,10 @@ is the following: `require 'table_io/delimited_table_io/delimited_table_io'.
 This brief example reads in the csv file 'foo.csv' and writes it out as the tab-delimited file
 'foo.txt':
 
-    Pipe.source('foo.csv')          >> # Read the input file
+    Pipe.source('foo.csv')               >> # Read the input file
     TableIo::Delimited::Reader.new       >> # convert it from delimited file format to records
     TableIo::Delimited::Writer.new("\t") >> # convert records tab-delimited file format.
-    Pipe.sink('foo.txt')              # write the delimited file to disk.
+    Pipe.sink('foo.txt')                    # write the delimited file to disk.
 
 See the file `examples/example.rb` for more examples.
 
