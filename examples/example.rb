@@ -16,8 +16,8 @@ module TableIoExamples
       input_filename  = "#{THIS_DIR}/tables/events.csv"
       output_filename = "#{THIS_DIR}/tables/events.txt"
 
-      Pipe.source(input_filename)          >> # Read the input file
-        TableIo::Delimited::Reader.new       >> # convert it from delimited file format to records
+      Pipe.source(input_filename)            >> # Read the input file
+        TableIo::Delimited::Reader.new(',')  >> # convert it from delimited file format to records
         TableIo::Delimited::Writer.new("\t") >> # convert records tab-delimited file format.
         Pipe.sink(output_filename)              # write the delimited file to disk.
     end

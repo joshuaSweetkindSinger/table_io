@@ -19,7 +19,7 @@ This brief example reads in the csv file 'foo.csv' and writes it out as the tab-
 'foo.txt':
 
     Pipe.source('foo.csv')               >> # Read the input file
-    TableIo::Delimited::Reader.new       >> # convert it from delimited file format to records
+    TableIo::Delimited::Reader.new(",")  >> # convert it from csv format to records
     TableIo::Delimited::Writer.new("\t") >> # convert records to tab-delimited file format.
     Pipe.sink('foo.txt')                    # write the delimited file to disk.
 

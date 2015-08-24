@@ -118,7 +118,7 @@ module TableIoTests
 
         with_test_scaffold do
           Pipe.source(input_filename)          >>  # Read the input file
-          TableIo::Delimited::Reader.new       >>  # convert it from csv file format to records
+          TableIo::Delimited::Reader.new(',')  >>  # convert it from csv file format to records
           TableIo::Delimited::Writer.new("\t") >>  # convert records to tab-delimited file format.
           Pipe.sink(output_filename)               # write the tab-delimited file to disk.
 
