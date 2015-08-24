@@ -9,6 +9,10 @@ such as a csv spreadsheet, before writing them back out, possibly in a new forma
 format. It can be used to filter records, alter records, or simply to convert a table from
 one format to another.
 
+The single mechanism used to do all processing is the "pipe", which should be familiar to *nix users. It is
+describe in more detail below. Using pipes allows for a uniform, generic approach to the processing of
+records in a table.
+
 
 ## Instantiable Classes
 The top-level instantiable classes are `DelimitedReader` and `DelimitedWriter`.
@@ -35,19 +39,26 @@ See the file `examples/example.rb` for more examples.
 
 
 ## Pipes
-All file processing is done with pipes. See `pipe.rb`. Readers, writers, and other stream processors
-are chained together in order to transform
+All file processing is done with pipes. See `pipe.rb` in this project.
+A pipe is chain of StreamProcessor objects, with the output of one processor
+providing the input for the next processor in the chain.
+Chaining together StreamProcessor objects into a pipe is how one transforms
 an initial input file into an altered, filtered version of the file in another format, with each processor
-in the chain performing a single task. Such a chain is called a "pipe", and the readers and writers defined
-in this project support piping via the pipe() method, and the synonymous >> operator.
+in the chain ideally performing a single task.
+
+Every StreamProcessor object in a pipe, except for the final SinkFile object, must define an each() method
+that produces its output stream as a function of its input stream. The output stream is simply a Ruby enumeration,
+which is to say that the each() method must simply yield each element of its output in turn to the block associated
+with the call to each().
+
+The Reader and Writer classes defined in this project support piping via the pipe() method,
+and via the synonymous >> operator.
 See the examples in `examples/examples.rb`.
 
 All pipes must begin with a SourceFile object at their "left edge" and must end with a SinkFile object
 at their "right edge". The SinkFile object is what commands the action. It has a run() method that
 triggers the pipe and begins pulling elements through it to be written to the SinkFile's output file.
 
-Every StreamProcessor object in a pipe, except for the final SinkFile object, must define an each() method
-that produces the elements of its enumeration as a function of its input stream.
 
 
 ## Architecture Details
@@ -56,28 +67,29 @@ There are three main types of objects: Reader, Writer, and Record.
 
 ### Record
 A Record object is a generic representation of a record in a table: it maps column names to their values.
+A record is initialized with two arrays of strings: the first representing column names, and the second representing
+their associated values.
 
 ### Reader
-A Reader object is initialized from a character stream (opened from a table) and turns it into
-an iterator of Record objects, also called a "record stream". A particular Reader class knows how
-to parse the character stream from a particular table format. For example, a Delimited::Reader knows
+A Reader object receives pipe input from a character stream (opened from a table) and produces
+Record objects as its pipe output. A particular Reader class knows how
+to parse the incoming character stream from a particular table format. For example, a Delimited::Reader knows
 how to parse the records of a delimited table, such as a csv table.
 
 If r is a Reader receiving input from the character stream of a table t,
-then r is an iterator of the records of t, and r.each is an enumeration of the same.
+then r.each is an enumeration of the records in t.
 Also, r.columns is an array of strings representing the names of t's columns, in column-order.
 Note that the first element of the enumeration is *not* the column header.
 You only get that via r.columns.
 
 ### Writer
-A Writer object is initialized from a record stream and turns it back into
-an iterator of characters representing a table. A particular Writer class knows how to write
-a character stream in a particular table format. For example, a Delimited::Writer knows how
-to write the records of a delimited table, such as a csv table.
+A Writer object receives pipe input from a record stream, such as that produced by the output
+of a Reader object, and produces a character stream representing a table as its pipe output.
+A particular Writer class knows how to write a character stream in a particular table format.
+For example, a Delimited::Writer knows how to write the records of a delimited table, such as a csv table.
 
 If w is a Writer receiving input from a Reader r, which in turn receives input from a table t,
-then w is an iterator of the character sequence that represents t translated into w's format,
-and w.each is an enumeration of the same.
-   Since this is a text representation of the table, the initial characters in the sequence *will*
+then w.each is an enumeration of the character sequence that represents t translated into w's format.
+   Since w's output is a text representation of a table, the initial characters in the sequence *will*
 be the table's column header, which defines the column names and column order of the table.
 

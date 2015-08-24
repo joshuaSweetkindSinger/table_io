@@ -26,7 +26,7 @@ module TableIo
       def each
         columns = @row_reader.next
         @row_reader.each do |row|
-          yield Record.new(row, columns)
+          yield Record.new(columns, row)
         end
       end
 

@@ -10,8 +10,9 @@ module TableIo
   # ===========================================================================
   #                           Record
   # ===========================================================================
-  # A Record object represents a single row from the table.
-  # The record has accessor methods for each column name. Thus, if the table
+  # A Record object represents a single row from a table. It is implemented as a thin wrapper
+  # around a Hash object.
+  #    The record has accessor methods for each column name. Thus, if the table
   # has a column called 'foo', and r is a record, then r.foo is its 'foo' value.
   # The raw record information is stored in the member variable @hash, with @hash[column_name.to_sym] being
   # the record's value for column_name. The record knows the original order of its columns
@@ -22,13 +23,13 @@ module TableIo
   class Record
     attr_accessor :hash, :columns
 
-    # Create a Record object from row, which should be an array of string values,
-    # and from columns, which should be an array of corresponding column names.
-    def initialize (row, columns)
+    # Create a Record object from row_values, which should be an array of string values,
+    # and from row_columns, which should be an array of corresponding column names.
+    def initialize (row_columns, row_values)
       @hash = {}
-      @columns = columns
-      columns.each_with_index do |column_name, index|
-        @hash[column_name.to_sym] = row[index]
+      @columns = row_columns
+      row_columns.each_with_index do |column_name, index|
+        @hash[column_name.to_sym] = row_values[index]
       end
     end
 
