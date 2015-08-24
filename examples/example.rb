@@ -1,15 +1,33 @@
 #!/usr/bin/env ruby
 require_relative '../delimited_table_io/delimited_table_io'
 
-# Process the delimited file events.csv and filter it for just those event records
-# titled "shopping". Also strip the "extra notes" column from the records. Write them back
-# out to shopping_days.csv. The top-level method is self.run().
-module Example
+
+# This simple example reads in a csv file and writes it back out as a tab-delimited file.
+module Example1
   THIS_DIR = File.dirname(__FILE__)
 
   def self.run
-    input_filename  = "#{THIS_DIR}/events.csv"
-    output_filename = "#{THIS_DIR}/filtered_events.csv"
+    input_filename  = "#{THIS_DIR}/tables/events.csv"
+    output_filename = "#{THIS_DIR}/tables/events.txt"
+
+    Pipe.source(input_filename)                 # Read the input file
+    .pipe(TableIo::Delimited::Reader.new)       # convert it from delimited file format to records
+    .pipe(TableIo::Delimited::Writer.new("\t")) # convert records tab-delimited file format.
+    .pipe(Pipe.sink(output_filename))           # write the delimited file to disk.
+  end
+end
+
+
+
+# This example processes the delimited file "events.csv" and filters it for just those event records
+# titled "shopping". It also strips the "extra notes" column from the records. Then it writes them back
+# out to "shopping_days.csv". The top-level method is self.run().
+module Example2
+  THIS_DIR = File.dirname(__FILE__)
+
+  def self.run
+    input_filename  = "#{THIS_DIR}/tables/events.csv"
+    output_filename = "#{THIS_DIR}/tables/filtered_events.csv"
 
     Pipe.source(input_filename)              # Read the input file
     .pipe(TableIo::Delimited::Reader.new)    # convert it from delimited file format to records
@@ -55,4 +73,5 @@ module Example
   end
 end
 
-Example.run
+Example1.run
+Example2.run

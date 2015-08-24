@@ -106,7 +106,11 @@ module TableIo
         value = value.to_s                                      # turn it into a string
         value = value.gsub('"', '""')                           # turn all embedded double quotes into double double-quotes
 
-        if value.include?(@delimiter)  || value.include?('"')   # surround it with double quotes if it contains the delimiter or double quotes.
+        # surround it with double quotes if it contains the delimiter or double quotes or a carriage return.
+        if value.include?(@delimiter) ||
+          value.include?(QUOTE) ||
+          value.include?(ROW_END_CHAR)
+
           value = '"' + value + '"'
         end
 

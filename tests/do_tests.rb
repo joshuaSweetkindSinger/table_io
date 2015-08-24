@@ -90,8 +90,8 @@ module TableIoTests
       include Helpers
 
       def run
-        input_filename            = "#{THIS_DIR}/events.csv"
-        output_filename           = "#{THIS_DIR}/events.out.csv"
+        input_filename            = "#{THIS_DIR}/tables/events.csv"
+        output_filename           = "#{THIS_DIR}/tables/events.out.csv"
         canonical_output_filename = "#{THIS_DIR}/events_correct_output.csv"
 
         with_test_scaffold do

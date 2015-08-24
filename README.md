@@ -16,15 +16,16 @@ The top-level instantiable classes are `DelimitedReader` and `DelimitedWriter`.
 
 ## Installation
 There is no installation script needed. Just copy the table_io directory and all its contents as-is
-into your code-base. To use one of its classes in your code, simply ensure that your ruby $LOAD_PATH
-can find table_io. For example, to use the delimited table reader and write classes, you would do
-
-    require 'table_io/delimited_table_io'
-    my_reader = TableIo::Delimited::Reader
-    my_writer = TableIo::Delimited:Writer
+into your code-base. To use one of its instantiable classes in your code, simply ensure that your ruby $LOAD_PATH
+can find the `table_io` directory and then `require` the class's file. At the moment, the only instantiable
+classes are the delimited reader and writer classes, so the only meaningful require statement
+is the following: `require 'table_io/delimited_table_io'.
 
 
 ## Examples
+This brief example reads in a csv file and writes it out as a tab-delimited file:
+
+
 See the file `examples/example.rb`.
 
 
