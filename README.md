@@ -35,7 +35,7 @@ See the file `examples/example.rb` for more examples.
 
 
 ## Pipes
-All file processing is done with pipes. See `pipe.rb'. Readers, writers, and other stream processors
+All file processing is done with pipes. See `pipe.rb`. Readers, writers, and other stream processors
 are chained together in order to transform
 an initial input file into an altered, filtered version of the file in another format, with each processor
 in the chain performing a single task. Such a chain is called a "pipe", and the readers and writers defined
