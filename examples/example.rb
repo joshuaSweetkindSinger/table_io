@@ -22,7 +22,8 @@ end
 
 # This example processes the delimited file "events.csv" and filters it for just those event records
 # titled "shopping". It also strips the "extra notes" column from the records. Then it writes them back
-# out to "shopping_days.txt" in tab-delimited format. The top-level method is self.run().
+# out to "shopping_days.txt" in tab-delimited format. The top-level method is self.run(). Here we
+# use the pipe() method, which is synonymous with the >> operator that was used in Example1 above.
 module Example2
   THIS_DIR = File.dirname(__FILE__)
 
