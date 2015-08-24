@@ -10,7 +10,7 @@ format. It can be used to filter records, alter records, or simply to convert a 
 one format to another.
 
 The single mechanism used to do all processing is the "pipe", which should be familiar to *nix users. It is
-describe in more detail below. Using pipes allows for a uniform, generic approach to the processing of
+described in more detail below. Using pipes allows for a uniform, generic approach to the processing of
 records in a table.
 
 ## Examples
@@ -21,7 +21,7 @@ This brief example reads in the csv file 'foo.csv' and writes it out as the tab-
     Pipe.source('foo.csv')               >> # Read the input file
     TableIo::Delimited::Reader.new(",")  >> # convert it from csv format to records
     TableIo::Delimited::Writer.new("\t") >> # convert records to tab-delimited file format.
-    Pipe.sink('foo.txt')                    # write the delimited file to disk.
+    Pipe.sink('foo.txt')                    # write the new tab-delimited file to disk.
 
 See the file `examples/example.rb` for more examples.
 
@@ -29,6 +29,10 @@ See the file `examples/example.rb` for more examples.
 If you don't want to write out a new file, then you can just use the end of the pipe as an enumeration,
 rather than writing to a SinkFile. In this example, we just return an array of Record objects that
 represent dessert recipes with fewer than 300 calories.
+
+(Here we prefer to use the pipe() method,
+rather than the >> operator above. Although these two are functionally equivalent, the Ruby
+parser has different syntactic precedences for them, which makes pipe() more convenient than >> to use in conjunction with to_enum().)
 
       Pipe.source('desserts.csv')            # Read the input file
       .pipe(TableIo::Delimited::Reader.new)  # Convert it to records
