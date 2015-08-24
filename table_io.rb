@@ -22,6 +22,8 @@ module TableIo
   class Record
     attr_accessor :hash, :columns
 
+    # Create a Record object from row, which should be an array of string values,
+    # and from columns, which should be an array of corresponding column names.
     def initialize (row, columns)
       @hash = {}
       @columns = columns
@@ -51,30 +53,23 @@ module TableIo
   # ===========================================================================
   #                           Reader (Base Class)
   # ===========================================================================
-  # A Reader object's input stream is a SourceFile stream (see pipe.rb) that is opened to the table in question.
-  # If r is a reader, with input from the stream my_table, then r is an iterator of that table's records, and r.each
-  # is an enumeration of the same.
+  # A Reader object's input stream is a SourceFile stream (see pipe.rb) that is opened to a file representing a table.
+  # If r is a reader, with input from the stream my_table, then r.each
+  # is an enumeration of that table's records.
   #   This is a base class. It is not instantiable. For an example of an instantiable class, see DelimitedReader.
-  #   Derived classes must define a @row_reader member variable: an object with a next() method that returns the next
-  # row of the table from the stream as an array of strings, or raises StopIteration if there are no more rows to read.
-  # Derived classes must also define a header() method that reads and returns the table's column definitions as an array of strings.
-  # It is assumed that the column definitions will be the first row or rows of the table.
+  #   Derived classes must define the each() method and yield a sequence of Record objects.
+  #
   class Reader < StreamProcessor
-    attr_reader :columns
-
-    # Return the next row from the stream as a Record object, or raise StopIteration if
-    # we are end-of-file.
+    # Enumerate the table as a sequence of Record objects.
     def each
-      @columns = header if !@columns
-      loop do
-        yield Record.new(@row_reader.next, @columns)
-      end
+      raise "This method must be defined by a derived class."
     end
   end
 
 
   # ===========================================================================
-  #                           Writer (Base Class)
+  #
+  #                    Writer (Base Class)
   # ===========================================================================
   # A Writer object is initialized from a record iterator of the successive records
   # of the table to be written. The Reader sub-classes

@@ -23,6 +23,13 @@ module TableIo
         @delimiter = delimiter  # We must assign this before calling super, in case input_stream= is called by super.
       end
 
+      def each
+        columns = header
+        loop do
+          yield Record.new(@row_reader.next, columns)
+        end
+      end
+
       def header
         @row_reader.next
       end
