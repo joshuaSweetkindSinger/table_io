@@ -61,9 +61,13 @@ The Reader and Writer classes defined in this project support piping via the pip
 and via the synonymous >> operator.
 See the examples in `examples/examples.rb`.
 
-All pipes must begin with a SourceFile object at their "left edge" and must end with a SinkFile object
+All pipes must begin with a SourceFile object at their "left edge" and typically end with a SinkFile object
 at their "right edge". The SinkFile object is what commands the action. It has a run() method that
 triggers the pipe and begins pulling elements through it to be written to the SinkFile's output file.
+
+If you don't end your pipe with a SinkFile, then the return value of the chain of StreamProcessor objects
+you have created is just the rightmost StreamProcessor. Its each() method can be invoked to yield the
+elements of the pipe.
 
 
 
@@ -84,17 +88,17 @@ is the following: `require 'table_io/delimited_table_io/delimited_table_io'`.
 Using existing classes is as simple as chaining them together in a pipe, in the manner of the examples above,
 in order to transform a table from one form to another. If your end goal isn't to write out another file,
 you can break out of the pipe model and just use the end of the pipe as an enumeration to process the
-table's records in any way you see fit.
+table's records in any way you see fit. The dessert example above illustrates this case.
 
 ### Creating Your Own Classes
 If you want to create your own pair of Reader and Writer classes, just have them inherit from Reader
-or Writer, respectively, and implement the each() method in your class, and you're good to go. You can
-use the Delimited::Reade rand Delimited::Writer classes as examples to work from.
+or Writer, respectively, and have them implement the each() method, and you're good to go. You can
+use the Delimited::Reader rand Delimited::Writer classes as examples to work from.
 
 
 ## Architecture Details
 
-There are three main types of objects: Reader, Writer, and Record.
+The infrastructure defines three main types of objects: Reader, Writer, and Record.
 
 ### Record
 A Record object is a generic representation of a record in a table: it maps column names to their values.
