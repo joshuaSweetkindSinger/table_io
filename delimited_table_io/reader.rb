@@ -24,15 +24,12 @@ module TableIo
       end
 
       def each
-        columns = header
+        columns = @row_reader.next
         @row_reader.each do |row|
           yield Record.new(row, columns)
         end
       end
 
-      def header
-        @row_reader.next
-      end
 
       def input_stream= (stream)
         super(stream)
