@@ -85,42 +85,8 @@ module TableIo
   # of columns to be the column header for the table. It is assumed that this should occupy the initial characters of the table's
   # text representation.
   class Writer < StreamProcessor
-    # Inputs: record_stream is a record iterator, an instance of one of the Reader subclasses.
-    def initialize
-      @record_writer  = nil     # This needs to be initialized by the derived class.
-    end
-
-    # Return the next character in the string representation of the table
-    # represented by the record stream from which we were initialized, or raise StopIteration
-    # if there are no more records.
     def each
-      header_written = false
-      self.input_stream.each do |record|
-        buffer = ''
-
-        if !header_written
-          buffer << header(record.columns)
-          header_written = true
-        end
-
-        buffer << record_to_string(record)
-
-        buffer.each_char do |c|
-          yield c
-        end
-      end
-    end
-
-    private
-
-    # Write record to @stream using our format. The public method is write(). See above.
-    def record_to_string (record)
-      raise "The record_to_string() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
-    end
-
-    # Write a column header to the stream.
-    def header (columns)
-      raise "The header() method must be defined by a subclass of Writer. You can't instantiate a Writer object directly."
+      raise "This method must be defined by a derived class."
     end
   end
 end

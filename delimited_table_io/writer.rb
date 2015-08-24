@@ -31,31 +31,65 @@ module TableIo
         end
 
         @delimiter = delimiter
-        @row = '' # Used to build up a string representing a row before returning it.
+      end
+
+      # Return the next character in the string representation of the table
+      # represented by the record stream from which we were initialized, or raise StopIteration
+      # if there are no more records.
+      def each
+        header_written = false
+        self.input_stream.each do |record|
+          buffer = ''
+
+          if !header_written
+            buffer << header(record.columns)
+            header_written = true
+          end
+
+          buffer << record_to_string(record)
+
+          buffer.each_char do |c|
+            yield c
+          end
+        end
       end
 
 
       private
 
+      # Return a string representing the column header of the table.
       def header (columns)
+        row = Row.new(@delimiter)
         columns.each do |column_name|
-          add_to_row column_name
+          row.add column_name
         end
-        write_row
+        row.finalize
       end
 
+      # Return a string representing record.
       def record_to_string (record)
+        row = Row.new(@delimiter)
         record.columns.each do |column_name|
-          add_to_row record.send(column_name)
+          row.add record.send(column_name)
         end
-        write_row
+        row.finalize
+      end
+    end
+
+
+    # Row is a small helper class. It represents a string object that understands delimited
+    # rows and allows values to be added to the row one at a time. It also massages/sanitizes
+    # values that are added to the row, escaping them when necessary.
+    class Row
+      def initialize (delimiter)
+        @delimiter = delimiter
+        @row = ''
       end
 
-
-      # Put the value v into the next cell in the spreadsheet, performing any necessary
+      # Put the value v into the next cell in the row, performing any necessary
       # escape modifications so that it is acceptable for output, e.g.,
       # making sure it is a string, that delimiter chars are escaped, etc.
-      def add_to_row (v)
+      def add (v)
         @row << @delimiter unless @row.empty? # Write a cell separator if this is not the first cell in the row
         @row << escape_value(v)               # Write the escaped value.
       end
@@ -80,13 +114,12 @@ module TableIo
       end
 
 
-      # Return the row we've been building up and reset it to the empty string.
-      def write_row
-        result = @row + ROW_END_CHAR
-        @row = ''
-        result
+      # Return the row we've been building up, and terminate it properly.
+      def finalize
+        @row << ROW_END_CHAR
       end
     end
   end
 end
+
 
