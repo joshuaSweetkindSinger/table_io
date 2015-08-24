@@ -1,5 +1,5 @@
 # Table Io
-This module knows how to read and write records stored in a file as tabular data, like a spreadsheet.
+This module knows how to read and write records stored in a file as tabular data like a spreadsheet.
 The architecture is extensible so that new readers and writers can be defined for different file formats,
 but at the moment the module only supports the reading and writing of delimited files, such as csv files
 or tab-delimited files.
