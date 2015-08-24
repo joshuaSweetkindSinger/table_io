@@ -13,19 +13,6 @@ The single mechanism used to do all processing is the "pipe", which should be fa
 describe in more detail below. Using pipes allows for a uniform, generic approach to the processing of
 records in a table.
 
-
-## Instantiable Classes
-The top-level instantiable classes are `DelimitedReader` and `DelimitedWriter`.
-
-
-## Installation
-There is no installation script needed. Just copy the table_io directory and all its contents as-is
-into your code-base. To use one of its instantiable classes in your code, simply ensure that your ruby $LOAD_PATH
-can find the `table_io` directory and then `require` the class's file. At the moment, the only instantiable
-classes are the delimited reader and writer classes, so the only meaningful require statement
-is the following: `require 'table_io/delimited_table_io/delimited_table_io'`.
-
-
 ## Examples
 ### Convert from csv to tab-delimited format
 This brief example reads in the csv file 'foo.csv' and writes it out as the tab-delimited file
@@ -43,9 +30,11 @@ If you don't want to write out a new file, then you can just use the end of the 
 rather than writing to a SinkFile. In this example, we just return an array of Record objects that
 represent dessert recipes with fewer than 300 calories.
 
-    Pipe.source('desserts.csv')               >> # Read the input file
-    TableIo::Delimited::Reader.new.each.select {|r| r.calories < 300}
-
+      Pipe.source('desserts.csv')            # Read the input file
+      .pipe(TableIo::Delimited::Reader.new)  # Convert it to records
+      .to_enum.select do |record|            # Select the low-cal desserts
+        record.calories.to_i < 300
+      end
 
 See the file `examples/example.rb` for more examples.
 
@@ -70,6 +59,19 @@ See the examples in `examples/examples.rb`.
 All pipes must begin with a SourceFile object at their "left edge" and must end with a SinkFile object
 at their "right edge". The SinkFile object is what commands the action. It has a run() method that
 triggers the pipe and begins pulling elements through it to be written to the SinkFile's output file.
+
+
+
+## Instantiable Classes
+The top-level instantiable classes are `DelimitedReader` and `DelimitedWriter`.
+
+
+## Installation
+There is no installation script needed. Just copy the table_io directory and all its contents as-is
+into your code-base. To use one of its instantiable classes in your code, simply ensure that your ruby $LOAD_PATH
+can find the `table_io` directory and then `require` the class's file. At the moment, the only instantiable
+classes are the delimited reader and writer classes, so the only meaningful require statement
+is the following: `require 'table_io/delimited_table_io/delimited_table_io'`.
 
 
 ## Usage
