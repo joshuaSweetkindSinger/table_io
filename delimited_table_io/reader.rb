@@ -25,8 +25,8 @@ module TableIo
 
       def each
         columns = header
-        loop do
-          yield Record.new(@row_reader.next, columns)
+        @row_reader.each do |row|
+          yield Record.new(row, columns)
         end
       end
 
