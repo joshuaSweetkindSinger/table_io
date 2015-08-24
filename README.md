@@ -1,11 +1,13 @@
 # Table Io
-This module knows how to read and write records/rows stored as table-data (like a spreadsheet)
-in a number of different formats, such as csv.
-The architecture is extensible so that new readers and writers can be defined for different file formats.
+This module knows how to read and write records stored in a file as tabular data, like a spreadsheet.
+The architecture is extensible so that new readers and writers can be defined for different file formats,
+but at the moment the module only supports the reading and writing of delimited files, such as csv files
+or tab-delimited files.
 
 The functionality of this module can be used to process records one at a time from a table file,
-such as a csv spreadsheet, before writing them back out, possibly in a new format. It can be used
-to filter records, alter records, or simply to convert a table from one format to another.
+such as a csv spreadsheet, before writing them back out, possibly in a new format, such as a tab-delimited
+format. It can be used to filter records, alter records, or simply to convert a table from
+one format to another.
 
 
 ## Instantiable Classes
