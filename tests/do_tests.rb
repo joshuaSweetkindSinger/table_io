@@ -80,32 +80,119 @@ module TableIoTests
 
     # This is the top-level function. Right now it only has one test.
     def self.do_tests
-      tests = [TestSameFormat.new]
+      tests = [Test1.new, Test2.new, Test3.new]
       tests.each {|test| test.run}
     end
 
 
-    # Test that we can read in a csv file and write it back out unaltered from the original.
-    class TestSameFormat < Test
+    # Test that we can read in a csv file and write it back out unaltered.
+    class Test1 < Test
       include Helpers
 
       def run
-        input_filename            = "#{THIS_DIR}/tables/events.csv"
-        output_filename           = "#{THIS_DIR}/tables/events.out.csv"
-        canonical_output_filename = "#{THIS_DIR}/events_correct_output.csv"
+        input_filename  = "#{THIS_DIR}/tables/events.csv"
+        output_filename = "#{THIS_DIR}/tables/unaltered_events.csv"
+        canonical_output_filename = "#{THIS_DIR}/tables/unaltered_events_correct_output.csv"
 
         with_test_scaffold do
-          Pipe.source(input_filename)
-          .pipe(TableIo::Delimited::Reader.new)
-          .pipe(TableIo::Delimited::Writer.new)
-          .pipe(Pipe.sink(output_filename))
+          Pipe.source(input_filename)              # Read the input file
+          .pipe(TableIo::Delimited::Reader.new)    # convert it from csv file format to records
+          .pipe(TableIo::Delimited::Writer.new)    # convert records back to csv file format.
+          .pipe(Pipe.sink(output_filename))        # write the tab-delimited file to disk.
 
           files_identical?(canonical_output_filename, output_filename)
         end
       end
     end
+
+
+
+    # Test that we can read in a csv file and write it back out as a tab-delimited file
+    class Test2 < Test
+      include Helpers
+
+      def run
+        input_filename  = "#{THIS_DIR}/tables/events.csv"
+        output_filename = "#{THIS_DIR}/tables/tabbed_events.txt"
+        canonical_output_filename = "#{THIS_DIR}/tables/tabbed_events_correct_output.txt"
+
+        with_test_scaffold do
+
+
+          Pipe.source(input_filename)              # Read the input file
+          .pipe(TableIo::Delimited::Reader.new)    # convert it from csv file format to records
+          .pipe(TableIo::Delimited::Writer.new("\t"))  # convert records to tab-delimited file format.
+          .pipe(Pipe.sink(output_filename))        # write the tab-delimited file to disk.
+
+          files_identical?(canonical_output_filename, output_filename)
+        end
+      end
+    end
+
+
+
+    # Test that we can read in a csv file and write it back out as a filtered, tab-delimited file.
+    # Filter out all records except those whose event is "shopping". Strip the "extra notes" field out.
+    class Test3 < Test
+      include Helpers
+
+      def run
+        input_filename  = "#{THIS_DIR}/tables/events.csv"
+        output_filename = "#{THIS_DIR}/tables/filtered_events.txt"
+        canonical_output_filename = "#{THIS_DIR}/tables/filtered_events_correct_output.txt"
+
+        with_test_scaffold do
+
+
+          Pipe.source(input_filename)              # Read the input file
+          .pipe(TableIo::Delimited::Reader.new)    # convert it from csv file format to records
+          .pipe(FilterToShopping.new)              # filter and massage the records to just those containing the "shopping" event
+          .pipe(StripNotes.new)                    # Strip off the "extra notes" column
+          .pipe(TableIo::Delimited::Writer.new("\t"))  # convert records to tab-delimited file format.
+          .pipe(Pipe.sink(output_filename))        # write the tab-delimited file to disk.
+
+          files_identical?(canonical_output_filename, output_filename)
+        end
+      end
+
+
+      # This class filters the source records to just those whose "event" column matches the string "shopping"
+      class FilterToShopping < Pipe::StreamProcessor
+        def each
+          self.input_stream.each do |record|
+            if record.event == 'shopping'
+              yield record
+            end
+          end
+        end
+      end
+
+
+      # This class removes the "extra notes" column from each record
+      class StripNotes < Pipe::StreamProcessor
+        def each
+          self.input_stream.each do |record|
+            record.hash.delete('extra notes')
+            record.columns[extra_notes_column_index(record), 1] = [] # delete this column
+            yield record
+          end
+        end
+
+        # Return the index of the 'extra notes' column
+        def extra_notes_column_index (record)
+          @extra_notes_column_index ||= find_column_index(record, 'extra notes')
+        end
+
+        def find_column_index (record, column_to_find)
+          record.columns.each_with_index do |column_name, index|
+            return index if column_name == column_to_find
+          end
+        end
+      end
+    end
   end
 end
+
 
 
 
