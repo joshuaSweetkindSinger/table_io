@@ -11,12 +11,7 @@ one format to another.
 
 
 ## Instantiable Classes
-The top-level instantiable classes are `DelimitedReader`, `DelimitedWriter`,
-`JsonReader`, `JsonWriter`, `XmlReader`, and `XmlWriter`.
-
-
-Currently this project only implements readers and writers for delimited files, such as csv or tab-delimited
-files.
+The top-level instantiable classes are `DelimitedReader` and `DelimitedWriter`.
 
 
 ## Installation
