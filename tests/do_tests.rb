@@ -90,15 +90,15 @@ module TableIoTests
       include Helpers
 
       def run
-        input_filename  = "#{THIS_DIR}/tables/events.csv"
-        output_filename = "#{THIS_DIR}/tables/unaltered_events.csv"
+        input_filename            = "#{THIS_DIR}/tables/events.csv"
+        output_filename           = "#{THIS_DIR}/tables/unaltered_events.csv"
         canonical_output_filename = "#{THIS_DIR}/tables/unaltered_events_correct_output.csv"
 
         with_test_scaffold do
-          Pipe.source(input_filename)              # Read the input file
-          .pipe(TableIo::Delimited::Reader.new)    # convert it from csv file format to records
-          .pipe(TableIo::Delimited::Writer.new)    # convert records back to csv file format.
-          .pipe(Pipe.sink(output_filename))        # write the tab-delimited file to disk.
+          Pipe.source(input_filename)    >>   # Read the input file
+          TableIo::Delimited::Reader.new >>   # convert it from csv file format to records
+          TableIo::Delimited::Writer.new >>   # convert records back to csv file format.
+          Pipe.sink(output_filename)          # write the tab-delimited file to disk.
 
           files_identical?(canonical_output_filename, output_filename)
         end
@@ -112,17 +112,15 @@ module TableIoTests
       include Helpers
 
       def run
-        input_filename  = "#{THIS_DIR}/tables/events.csv"
-        output_filename = "#{THIS_DIR}/tables/tabbed_events.txt"
+        input_filename            = "#{THIS_DIR}/tables/events.csv"
+        output_filename           = "#{THIS_DIR}/tables/tabbed_events.txt"
         canonical_output_filename = "#{THIS_DIR}/tables/tabbed_events_correct_output.txt"
 
         with_test_scaffold do
-
-
-          Pipe.source(input_filename)              # Read the input file
-          .pipe(TableIo::Delimited::Reader.new)    # convert it from csv file format to records
-          .pipe(TableIo::Delimited::Writer.new("\t"))  # convert records to tab-delimited file format.
-          .pipe(Pipe.sink(output_filename))        # write the tab-delimited file to disk.
+          Pipe.source(input_filename)          >>  # Read the input file
+          TableIo::Delimited::Reader.new       >>  # convert it from csv file format to records
+          TableIo::Delimited::Writer.new("\t") >>  # convert records to tab-delimited file format.
+          Pipe.sink(output_filename)               # write the tab-delimited file to disk.
 
           files_identical?(canonical_output_filename, output_filename)
         end
@@ -137,19 +135,17 @@ module TableIoTests
       include Helpers
 
       def run
-        input_filename  = "#{THIS_DIR}/tables/events.csv"
-        output_filename = "#{THIS_DIR}/tables/filtered_events.txt"
+        input_filename            = "#{THIS_DIR}/tables/events.csv"
+        output_filename           = "#{THIS_DIR}/tables/filtered_events.txt"
         canonical_output_filename = "#{THIS_DIR}/tables/filtered_events_correct_output.txt"
 
         with_test_scaffold do
-
-
-          Pipe.source(input_filename)              # Read the input file
-          .pipe(TableIo::Delimited::Reader.new)    # convert it from csv file format to records
-          .pipe(FilterToShopping.new)              # filter and massage the records to just those containing the "shopping" event
-          .pipe(StripNotes.new)                    # Strip off the "extra notes" column
-          .pipe(TableIo::Delimited::Writer.new("\t"))  # convert records to tab-delimited file format.
-          .pipe(Pipe.sink(output_filename))        # write the tab-delimited file to disk.
+          Pipe.source(input_filename)          >>  # Read the input file
+          TableIo::Delimited::Reader.new       >>  # convert it from csv file format to records
+          FilterToShopping.new                 >>  # filter and massage the records to just those containing the "shopping" event
+          StripNotes.new                       >>  # Strip off the "extra notes" column
+          TableIo::Delimited::Writer.new("\t") >>  # convert records to tab-delimited file format.
+          Pipe.sink(output_filename)               # write the tab-delimited file to disk.
 
           files_identical?(canonical_output_filename, output_filename)
         end

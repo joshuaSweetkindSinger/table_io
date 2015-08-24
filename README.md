@@ -19,14 +19,19 @@ There is no installation script needed. Just copy the table_io directory and all
 into your code-base. To use one of its instantiable classes in your code, simply ensure that your ruby $LOAD_PATH
 can find the `table_io` directory and then `require` the class's file. At the moment, the only instantiable
 classes are the delimited reader and writer classes, so the only meaningful require statement
-is the following: `require 'table_io/delimited_table_io'.
+is the following: `require 'table_io/delimited_table_io/delimited_table_io'.
 
 
 ## Examples
-This brief example reads in a csv file and writes it out as a tab-delimited file:
+This brief example reads in the csv file 'foo.csv' and writes it out as the tab-delimited file
+'foo.txt':
 
+    Pipe.source('foo.csv')          >> # Read the input file
+    TableIo::Delimited::Reader.new       >> # convert it from delimited file format to records
+    TableIo::Delimited::Writer.new("\t") >> # convert records tab-delimited file format.
+    Pipe.sink('foo.txt')              # write the delimited file to disk.
 
-See the file `examples/example.rb`.
+See the file `examples/example.rb` for more examples.
 
 
 ## Pipes
