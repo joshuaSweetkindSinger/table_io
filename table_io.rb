@@ -71,7 +71,6 @@ module TableIo
 
 
   # ===========================================================================
-  #
   #                    Writer (Base Class)
   # ===========================================================================
   # A Writer object is initialized from a record iterator of the successive records
