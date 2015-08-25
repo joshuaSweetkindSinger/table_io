@@ -107,6 +107,18 @@ A Record object is a generic representation of a record in a table: it maps colu
 A record is initialized with two arrays of strings: the first representing column names, and the second representing
 their associated values.
 
+### StreamProcessor
+This is a base class establishing the stream processing protocol. Both Reader and Writer classes
+below are built on top of it.
+
+A StreamProcessor has an input stream and produces an output stream. The input
+stream is assigned to it via a call to pipe(input_stream). The output stream is produced
+via a call to each(), which yields its elements one at a time to a block.
+
+As a programmer, if you wish to alter or filter records in the middle of a pipe, you should create
+a derived class based on StreamProcessor.
+
+
 ### Reader
 A Reader object receives pipe input from a character stream (opened from a table) and produces
 Record objects as its pipe output. A particular Reader class knows how
