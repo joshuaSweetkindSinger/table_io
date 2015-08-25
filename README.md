@@ -97,8 +97,10 @@ use the Delimited::Reader rand Delimited::Writer classes as examples to work fro
 
 
 ## Architecture Details
-
-The infrastructure defines three main types of objects: Reader, Writer, and Record.
+The architecture is implemented by two files: `table_io.rb`, and `'pipe.rb'. The latter implements
+the foundational pipe functionality through a base class called StreamProcessor. The file `table_io.rb'
+implements three more base classes: Reader, Writer, and Record. This is the main file to look at
+in order to understand the architecture.
 
 ### Record
 A Record object is a generic representation of a record in a table: it maps column names to their values.

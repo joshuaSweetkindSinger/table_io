@@ -1,7 +1,11 @@
 require_relative 'pipe'
 
-# This file just implements the base classes that create the infrastructure. The instantiable classes
-# are in their own sub-directories
+# This file implements the three of the four base classes that provide the infrastructure
+# for table processing: Reader, Writer, and Record. The fourth class is StreamProcessor,
+# which is defined in pipe.rb.
+#    The instantiable classes are in their own sub-directories. See the
+# directory delimited_table_io for an example.
+
 
 module TableIo
   include Pipe
