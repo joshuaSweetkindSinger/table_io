@@ -13,7 +13,8 @@ The single mechanism used to do all processing is the "pipe", which should be fa
 described in more detail below. Using pipes allows for a uniform, generic approach to the processing of
 records in a table.
 
-If you want to understand the code, the two files to look at first are `table_io.rb` and `pipe.rb`.
+If you want to understand the code, the two files to look at first are [table_io.rb](https://github.com/joshuaSweetkindSinger/table_io/blob/master/table_io.rb)
+and [pipe.rb](https://github.com/joshuaSweetkindSinger/table_io/blob/master/pipe.rb).
 
 ## Examples
 ### Convert from csv to tab-delimited format
