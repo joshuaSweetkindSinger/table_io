@@ -13,6 +13,8 @@ The single mechanism used to do all processing is the "pipe", which should be fa
 described in more detail below. Using pipes allows for a uniform, generic approach to the processing of
 records in a table.
 
+If you want to understand the code, the two files to look at first are `table_io.rb` and `pipe.rb`.
+
 ## Examples
 ### Convert from csv to tab-delimited format
 This brief example reads in the csv file 'foo.csv' and writes it out as the tab-delimited file
@@ -52,23 +54,9 @@ Chaining together StreamProcessor objects into a pipe is how one transforms
 an initial input file into an altered, filtered version of the file in another format, with each processor
 in the chain ideally performing a single task.
 
-Every StreamProcessor object in a pipe, except for the final SinkFile object, must define an each() method
-that produces its output stream as a function of its input stream. The output stream is simply a Ruby enumeration,
-which is to say that the each() method must simply yield each element of its output in turn to the block associated
-with the call to each().
-
-The Reader and Writer classes defined in this project support piping via the pipe() method,
-and via the synonymous >> operator.
-See the examples in `examples/examples.rb`.
-
 All pipes must begin with a SourceFile object at their "left edge" and typically end with a SinkFile object
 at their "right edge". The SinkFile object is what commands the action. It has a run() method that
 triggers the pipe and begins pulling elements through it to be written to the SinkFile's output file.
-
-If you don't end your pipe with a SinkFile, then the return value of the chain of StreamProcessor objects
-you have created is just the rightmost StreamProcessor. Its each() method can be invoked to yield the
-elements of the pipe.
-
 
 
 ## Instantiable Classes

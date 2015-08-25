@@ -46,11 +46,8 @@ module Pipe
   end
 
 
-  # This is a thin wrapper around an input stream.
+  # This is a thin wrapper around a character stream opened for reading.
   # All it really does it guarantee that its stream is closed when it is done reading from it.
-  # It also provides a slightly smoother syntax for pipes, because it makes its each() method explicit.
-  # Really, we could do without this, and use File.open('my_file.txt').each_char in place of
-  # SourceFile.new('my_file.txt')
   class SourceFile < StreamProcessor
     def initialize (filename)
       self.input_stream = File.open(filename)
@@ -77,8 +74,9 @@ module Pipe
     SinkFile.new filename
   end
 
-  # This is a thin wrapper around an output stream. It hooks up its run() method to the input_stream=()
-  # assigment, so that assigning an input to a SinkFile gets the ball rolling and begins processing
+  # This is a thin wrapper around a character stream opened for writing.
+  # It hooks up its run() method to the input_stream=()
+  # assignment, so that assigning an input_stream to a SinkFile gets the ball rolling and begins processing
   # of the entire pipe.
   class SinkFile < StreamProcessor
     # filename is the file to write to. When we are hooked up to a pipe, we will automatically
